@@ -101,14 +101,13 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # 注册所有路由模块
 from app.api.routers import (
-    auth_router, user_router, matching_router, session_router, review_router, message_router
+    auth_router, user_router, matching_router, session_router, message_router
 )
 # 使用修复后的路由
 from app.api.routers.mentor_router_fixed import router as mentor_router_fixed
 from app.api.routers.student_router_fixed import router as student_router_fixed
 from app.api.routers.service_router_fixed import router as service_router_fixed
-# 论坛系统路由
-from app.api.routers.forum_router import router as forum_router
+# 论坛系统路由已删除
 # 文件上传路由
 from app.api.routers.file_router import router as file_router
 # AI智能体系统路由
@@ -130,14 +129,12 @@ app.include_router(matching_router.router, prefix="/api/v1/matching", tags=["智
 app.include_router(service_router_fixed, prefix="/api/v1/services", tags=["指导服务"])
 app.include_router(session_router.router, prefix="/api/v1/sessions", tags=["指导会话"])
 
-# 评价和反馈
-app.include_router(review_router.router, prefix="/api/v1/reviews", tags=["评价反馈"])
+# 评价和反馈系统已删除
 
 # 消息系统
 app.include_router(message_router.router, prefix="/api/v1/messages", tags=["消息系统"])
 
-# 论坛系统
-app.include_router(forum_router, prefix="/api/v1/forum", tags=["论坛系统"])
+# 论坛系统已删除
 
 # 文件上传系统
 app.include_router(file_router, prefix="/api/v1/files", tags=["文件上传"])

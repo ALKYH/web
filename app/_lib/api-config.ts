@@ -95,15 +95,7 @@ export const API_CONFIG = {
       STATISTICS: '/api/v1/sessions/statistics'
     },
 
-    // ⭐ 评价反馈系统 (完善)
-    REVIEWS: {
-      CREATE: '/api/v1/reviews',
-      LIST: '/api/v1/reviews',
-      BY_ID: (id: number) => `/api/v1/reviews/${id}`,
-      UPDATE: (id: number) => `/api/v1/reviews/${id}`,
-      DELETE: (id: number) => `/api/v1/reviews/${id}`,
-      MY_REVIEWS: '/api/v1/reviews/my-reviews'
-    },
+    // ⭐ 评价反馈系统已删除
 
     // 💬 消息系统
     MESSAGES: {
@@ -117,23 +109,7 @@ export const API_CONFIG = {
         `/api/v1/messages/conversations/${tutorId}`
     },
 
-    // 📝 论坛系统
-    FORUM: {
-      CATEGORIES: '/api/v1/forum/categories',
-      POSTS: '/api/v1/forum/posts',
-      POST_BY_ID: (postId: number) => `/api/v1/forum/posts/${postId}`,
-      POST_LIKE: (postId: number) => `/api/v1/forum/posts/${postId}/like`,
-      POST_VIEW: (postId: number) => `/api/v1/forum/posts/${postId}/view`,
-      POST_REPORT: (postId: number) => `/api/v1/forum/posts/${postId}/report`,
-      POST_REPLIES: (postId: number) => `/api/v1/forum/posts/${postId}/replies`,
-      REPLY_BY_ID: (replyId: number) => `/api/v1/forum/replies/${replyId}`,
-      REPLY_LIKE: (replyId: number) => `/api/v1/forum/replies/${replyId}/like`,
-      REPLY_REPORT: (replyId: number) =>
-        `/api/v1/forum/replies/${replyId}/report`,
-      MY_POSTS: '/api/v1/forum/my-posts',
-      MY_REPLIES: '/api/v1/forum/my-replies',
-      POPULAR_TAGS: '/api/v1/forum/tags/popular'
-    }
+    // 📝 论坛系统已删除
   }
 } as const;
 
