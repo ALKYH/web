@@ -24,7 +24,7 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```bash
 # 切换到前端目录
-cd web
+cd web、
 
 # 安装依赖（如果还没有）
 npm install
