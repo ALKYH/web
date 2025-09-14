@@ -2,7 +2,7 @@
 
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Command,
@@ -44,7 +44,7 @@ function SearchField({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Mock suggestions data
-  const mockSuggestions: Suggestion[] = useMemo(() => [
+  const mockSuggestions: Suggestion[] = [
     { value: 'harvard', label: '哈佛大学', type: 'university' },
     { value: 'mit', label: '麻省理工学院', type: 'university' },
     { value: 'stanford', label: '斯坦福大学', type: 'university' },
@@ -53,7 +53,7 @@ function SearchField({
     { value: 'engineering', label: '工程学', type: 'major' },
     { value: 'medicine', label: '医学', type: 'major' },
     { value: 'economics', label: '经济学', type: 'major' }
-  ], []);
+  ];
 
   // Recommended schools to always display
   const recommendedSchools: Suggestion[] = [
@@ -188,44 +188,44 @@ function SearchField({
                         {filteredSuggestions.filter(
                           s => s.type === 'university'
                         ).length > 0 && (
-                            <CommandGroup heading="搜索结果 - 大学">
-                              {filteredSuggestions
-                                .filter(s => s.type === 'university')
-                                .map(suggestion => (
-                                  <CommandItem
-                                    key={suggestion.value}
-                                    value={suggestion.value}
-                                    onSelect={() =>
-                                      handleSelectSuggestion(suggestion)
-                                    }
-                                    className="cursor-pointer"
-                                  >
-                                    {suggestion.label}
-                                  </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          )}
+                          <CommandGroup heading="搜索结果 - 大学">
+                            {filteredSuggestions
+                              .filter(s => s.type === 'university')
+                              .map(suggestion => (
+                                <CommandItem
+                                  key={suggestion.value}
+                                  value={suggestion.value}
+                                  onSelect={() =>
+                                    handleSelectSuggestion(suggestion)
+                                  }
+                                  className="cursor-pointer"
+                                >
+                                  {suggestion.label}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        )}
 
                         {/* Majors group */}
                         {filteredSuggestions.filter(s => s.type === 'major')
                           .length > 0 && (
-                            <CommandGroup heading="搜索结果 - 专业">
-                              {filteredSuggestions
-                                .filter(s => s.type === 'major')
-                                .map(suggestion => (
-                                  <CommandItem
-                                    key={suggestion.value}
-                                    value={suggestion.value}
-                                    onSelect={() =>
-                                      handleSelectSuggestion(suggestion)
-                                    }
-                                    className="cursor-pointer"
-                                  >
-                                    {suggestion.label}
-                                  </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          )}
+                          <CommandGroup heading="搜索结果 - 专业">
+                            {filteredSuggestions
+                              .filter(s => s.type === 'major')
+                              .map(suggestion => (
+                                <CommandItem
+                                  key={suggestion.value}
+                                  value={suggestion.value}
+                                  onSelect={() =>
+                                    handleSelectSuggestion(suggestion)
+                                  }
+                                  className="cursor-pointer"
+                                >
+                                  {suggestion.label}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        )}
                       </>
                     ) : (
                       <div className="px-3 py-2 text-sm text-muted-foreground">

@@ -258,10 +258,11 @@ export default async function TutorDetailPage({ params }: PageProps) {
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          className={`h-5 w-5 ${i < Math.floor(tutor.rating)
+                          className={`h-5 w-5 ${
+                            i < Math.floor(tutor.rating)
                               ? 'fill-yellow-400 text-yellow-400'
                               : 'text-gray-300'
-                            }`}
+                          }`}
                         />
                       ))}
                     </div>

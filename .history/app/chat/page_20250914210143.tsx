@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Send,
   Search,
@@ -103,6 +103,12 @@ export default function TutorChatPage() {
     }
   }, [isAuthenticated, initialized, loading, router]);
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadConversations();
+    }
+  }, [isAuthenticated, token]);
+
   // Removed automatic scrolling when messages update
   // useEffect(() => {
   //   scrollToBottom();
@@ -113,7 +119,7 @@ export default function TutorChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = async () => {
     try {
       // Load existing conversations from API
       const response = await fetch(
@@ -170,13 +176,7 @@ export default function TutorChatPage() {
       console.error('Failed to load conversations:', error);
       // Keep default tutors on error
     }
-  }, [token]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadConversations();
-    }
-  }, [isAuthenticated, token, loadConversations]);
+  };
 
   const loadMessages = async (tutorId: number) => {
     try {
@@ -410,10 +410,11 @@ export default function TutorChatPage() {
                   {conversations.map(conversation => (
                     <div
                       key={conversation.tutorId}
-                      className={`flex items-center gap-3 p-3 mx-3 hover:bg-blue-50 cursor-pointer rounded-lg transition-colors ${selectedTutor?.tutorId === conversation.tutorId
-                        ? 'bg-gradient-to-r from-blue-100 to-sky-100 shadow-sm'
-                        : ''
-                        }`}
+                      className={`flex items-center gap-3 p-3 mx-3 hover:bg-blue-50 cursor-pointer rounded-lg transition-colors ${
+                        selectedTutor?.tutorId === conversation.tutorId
+                          ? 'bg-gradient-to-r from-blue-100 to-sky-100 shadow-sm'
+                          : ''
+                      }`}
                       onClick={() => selectConversation(conversation)}
                     >
                       <div className="relative">
@@ -445,7 +446,7 @@ export default function TutorChatPage() {
                         )}
                       </div>
                       {conversation.unreadCount &&
-                        conversation.unreadCount > 0 ? (
+                      conversation.unreadCount > 0 ? (
                         <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white border-0 rounded-full">
                           {conversation.unreadCount}
                         </Badge>
@@ -477,10 +478,11 @@ export default function TutorChatPage() {
                   <div>
                     <h2 className="font-semibold">{selectedTutor.tutorName}</h2>
                     <p
-                      className={`text-xs font-medium ${selectedTutor.isOnline
-                        ? 'text-emerald-600'
-                        : 'text-gray-500'
-                        }`}
+                      className={`text-xs font-medium ${
+                        selectedTutor.isOnline
+                          ? 'text-emerald-600'
+                          : 'text-gray-500'
+                      }`}
                     >
                       {selectedTutor.isOnline ? '🟢 在线' : '⚫ 离线'}
                     </p>
@@ -502,23 +504,26 @@ export default function TutorChatPage() {
                         {messages.map(message => (
                           <div
                             key={message.id}
-                            className={`flex ${message.sender === 'user'
-                              ? 'justify-end'
-                              : 'justify-start'
-                              }`}
+                            className={`flex ${
+                              message.sender === 'user'
+                                ? 'justify-end'
+                                : 'justify-start'
+                            }`}
                           >
                             <div
-                              className={`max-w-[80%] rounded-2xl px-4 py-2 shadow-sm ${message.sender === 'user'
-                                ? 'bg-gradient-to-r from-blue-500 to-sky-500 text-white rounded-br-none'
-                                : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 rounded-bl-none'
-                                }`}
+                              className={`max-w-[80%] rounded-2xl px-4 py-2 shadow-sm ${
+                                message.sender === 'user'
+                                  ? 'bg-gradient-to-r from-blue-500 to-sky-500 text-white rounded-br-none'
+                                  : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 rounded-bl-none'
+                              }`}
                             >
                               <p>{message.content || ''}</p>
                               <div
-                                className={`text-xs mt-1 ${message.sender === 'user'
-                                  ? 'text-primary-foreground/70'
-                                  : 'text-muted-foreground'
-                                  }`}
+                                className={`text-xs mt-1 ${
+                                  message.sender === 'user'
+                                    ? 'text-primary-foreground/70'
+                                    : 'text-muted-foreground'
+                                }`}
                               >
                                 {message.timestamp.toLocaleTimeString('zh-CN', {
                                   hour: '2-digit',

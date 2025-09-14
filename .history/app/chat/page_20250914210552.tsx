@@ -172,12 +172,6 @@ export default function TutorChatPage() {
     }
   }, [token]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadConversations();
-    }
-  }, [isAuthenticated, token, loadConversations]);
-
   const loadMessages = async (tutorId: number) => {
     try {
       setIsLoading(true);
@@ -411,8 +405,8 @@ export default function TutorChatPage() {
                     <div
                       key={conversation.tutorId}
                       className={`flex items-center gap-3 p-3 mx-3 hover:bg-blue-50 cursor-pointer rounded-lg transition-colors ${selectedTutor?.tutorId === conversation.tutorId
-                        ? 'bg-gradient-to-r from-blue-100 to-sky-100 shadow-sm'
-                        : ''
+                          ? 'bg-gradient-to-r from-blue-100 to-sky-100 shadow-sm'
+                          : ''
                         }`}
                       onClick={() => selectConversation(conversation)}
                     >
@@ -478,8 +472,8 @@ export default function TutorChatPage() {
                     <h2 className="font-semibold">{selectedTutor.tutorName}</h2>
                     <p
                       className={`text-xs font-medium ${selectedTutor.isOnline
-                        ? 'text-emerald-600'
-                        : 'text-gray-500'
+                          ? 'text-emerald-600'
+                          : 'text-gray-500'
                         }`}
                     >
                       {selectedTutor.isOnline ? '🟢 在线' : '⚫ 离线'}
@@ -503,21 +497,21 @@ export default function TutorChatPage() {
                           <div
                             key={message.id}
                             className={`flex ${message.sender === 'user'
-                              ? 'justify-end'
-                              : 'justify-start'
+                                ? 'justify-end'
+                                : 'justify-start'
                               }`}
                           >
                             <div
                               className={`max-w-[80%] rounded-2xl px-4 py-2 shadow-sm ${message.sender === 'user'
-                                ? 'bg-gradient-to-r from-blue-500 to-sky-500 text-white rounded-br-none'
-                                : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 rounded-bl-none'
+                                  ? 'bg-gradient-to-r from-blue-500 to-sky-500 text-white rounded-br-none'
+                                  : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 rounded-bl-none'
                                 }`}
                             >
                               <p>{message.content || ''}</p>
                               <div
                                 className={`text-xs mt-1 ${message.sender === 'user'
-                                  ? 'text-primary-foreground/70'
-                                  : 'text-muted-foreground'
+                                    ? 'text-primary-foreground/70'
+                                    : 'text-muted-foreground'
                                   }`}
                               >
                                 {message.timestamp.toLocaleTimeString('zh-CN', {

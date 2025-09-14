@@ -1,0 +1,5843 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "启航引路人 - 留学双边信息平台 API",
+    "description": "连接留学申请者与目标学校学长学姐的专业指导平台",
+    "version": "3.0.0"
+  },
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "认证系统"
+        ],
+        "summary": "用户注册",
+        "description": "创建新用户账户",
+        "operationId": "register_api_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "认证系统"
+        ],
+        "summary": "用户登录",
+        "description": "使用用户名和密码登录获取访问令牌",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_login_api_v1_auth_login_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "认证系统"
+        ],
+        "summary": "刷新令牌",
+        "description": "使用有效令牌刷新获取新的访问令牌",
+        "operationId": "refresh_token_api_v1_auth_refresh_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "获取当前用户资料",
+        "description": "获取当前登录用户的完整资料信息",
+        "operationId": "read_current_user_profile_api_v1_users_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "更新当前用户资料",
+        "description": "更新当前登录用户的资料信息",
+        "operationId": "update_current_user_profile_api_v1_users_me_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me/basic": {
+      "get": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "获取当前用户基本信息",
+        "description": "获取当前登录用户的基本账户信息",
+        "operationId": "read_current_user_basic_api_v1_users_me_basic_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{user_id}/profile": {
+      "get": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "获取指定用户的公开资料",
+        "description": "获取指定用户的公开资料信息",
+        "operationId": "read_user_profile_api_v1_users__user_id__profile_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mentors/profile": {
+      "get": {
+        "tags": [
+          "学长学姐"
+        ],
+        "summary": "获取指导者资料",
+        "description": "获取当前用户的指导者资料",
+        "operationId": "get_mentor_profile_api_v1_mentors_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MentorProfile"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "学长学姐"
+        ],
+        "summary": "更新指导者资料",
+        "description": "更新当前用户的指导者资料",
+        "operationId": "update_mentor_profile_api_v1_mentors_profile_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MentorUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MentorProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "学长学姐"
+        ],
+        "summary": "注册成为指导者",
+        "description": "用户注册成为指导者",
+        "operationId": "create_mentor_profile_api_v1_mentors_profile_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MentorCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MentorProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "学长学姐"
+        ],
+        "summary": "删除指导者资料",
+        "description": "删除当前用户的指导者资料",
+        "operationId": "delete_mentor_profile_api_v1_mentors_profile_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/mentors/search": {
+      "get": {
+        "tags": [
+          "学长学姐"
+        ],
+        "summary": "搜索指导者",
+        "description": "搜索指导者列表",
+        "operationId": "search_mentors_api_v1_mentors_search_get",
+        "parameters": [
+          {
+            "name": "search_query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search Query"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MentorPublic"
+                  },
+                  "title": "Response Search Mentors Api V1 Mentors Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/profile": {
+      "get": {
+        "tags": [
+          "学弟学妹"
+        ],
+        "summary": "获取申请者资料",
+        "description": "获取当前用户的申请者资料",
+        "operationId": "get_student_profile_api_v1_students_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentProfile"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "学弟学妹"
+        ],
+        "summary": "更新申请者资料",
+        "description": "更新当前用户的申请者资料",
+        "operationId": "update_student_profile_api_v1_students_profile_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "学弟学妹"
+        ],
+        "summary": "完善申请者资料",
+        "description": "用户完善申请者资料信息",
+        "operationId": "create_student_profile_api_v1_students_profile_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "学弟学妹"
+        ],
+        "summary": "删除申请者资料",
+        "description": "删除当前用户的申请者资料",
+        "operationId": "delete_student_profile_api_v1_students_profile_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/students/search": {
+      "get": {
+        "tags": [
+          "学弟学妹"
+        ],
+        "summary": "搜索申请者",
+        "description": "搜索申请者列表",
+        "operationId": "search_students_api_v1_students_search_get",
+        "parameters": [
+          {
+            "name": "search_query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search Query"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StudentPublic"
+                  },
+                  "title": "Response Search Students Api V1 Students Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/matching/recommend": {
+      "post": {
+        "tags": [
+          "智能匹配"
+        ],
+        "summary": "基于需求推荐指导者",
+        "description": "基于申请者的具体需求智能推荐匹配的指导者",
+        "operationId": "recommend_mentors_api_v1_matching_recommend_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Recommend Mentors Api V1 Matching Recommend Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/matching/filters": {
+      "get": {
+        "tags": [
+          "智能匹配"
+        ],
+        "summary": "获取筛选条件",
+        "description": "获取所有可用的筛选条件（学校/专业列表等）",
+        "operationId": "get_filters_api_v1_matching_filters_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Filters Api V1 Matching Filters Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/matching/filter": {
+      "post": {
+        "tags": [
+          "智能匹配"
+        ],
+        "summary": "高级筛选指导者",
+        "description": "使用高级筛选条件查找指导者",
+        "operationId": "filter_mentors_api_v1_matching_filter_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "返回数量",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "返回数量"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "偏移量",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "偏移量"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchingFilter"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Filter Mentors Api V1 Matching Filter Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/matching/history": {
+      "get": {
+        "tags": [
+          "智能匹配"
+        ],
+        "summary": "查看匹配历史",
+        "description": "查看申请者的匹配历史记录",
+        "operationId": "get_matching_history_api_v1_matching_history_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "返回数量",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "返回数量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Get Matching History Api V1 Matching History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/matching/recommendations": {
+      "post": {
+        "tags": [
+          "智能匹配"
+        ],
+        "summary": "上下文推荐",
+        "description": "根据不同上下文（首页/搜索/个人资料/服务）获取推荐",
+        "operationId": "get_contextual_recommendations_api_v1_matching_recommendations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Contextual Recommendations Api V1 Matching Recommendations Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/matching/popular": {
+      "get": {
+        "tags": [
+          "智能匹配"
+        ],
+        "summary": "热门指导者",
+        "description": "获取平台上最受欢迎的指导者",
+        "operationId": "get_popular_mentors_api_v1_matching_popular_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "返回数量",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "返回数量"
+          },
+          {
+            "name": "exclude_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "排除的指导者ID",
+              "title": "Exclude Ids"
+            },
+            "description": "排除的指导者ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Get Popular Mentors Api V1 Matching Popular Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/matching/similar": {
+      "get": {
+        "tags": [
+          "智能匹配"
+        ],
+        "summary": "相似背景推荐",
+        "description": "基于申请者背景推荐相似经历的指导者",
+        "operationId": "get_similar_background_mentors_api_v1_matching_similar_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "description": "推荐数量",
+              "default": 10,
+              "title": "Limit"
+            },
+            "description": "推荐数量"
+          },
+          {
+            "name": "exclude_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "排除的指导者ID",
+              "title": "Exclude Ids"
+            },
+            "description": "排除的指导者ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Get Similar Background Mentors Api V1 Matching Similar Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/matching/by-service": {
+      "get": {
+        "tags": [
+          "智能匹配"
+        ],
+        "summary": "服务相关推荐",
+        "description": "基于特定服务类型推荐指导者",
+        "operationId": "get_service_related_mentors_api_v1_matching_by_service_get",
+        "parameters": [
+          {
+            "name": "service_category",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "服务分类",
+              "title": "Service Category"
+            },
+            "description": "服务分类"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "description": "推荐数量",
+              "default": 10,
+              "title": "Limit"
+            },
+            "description": "推荐数量"
+          },
+          {
+            "name": "exclude_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "排除的指导者ID",
+              "title": "Exclude Ids"
+            },
+            "description": "排除的指导者ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Get Service Related Mentors Api V1 Matching By Service Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/services": {
+      "get": {
+        "tags": [
+          "指导服务"
+        ],
+        "summary": "浏览所有指导服务",
+        "description": "浏览平台上的所有可用指导服务",
+        "operationId": "get_services_api_v1_services_get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "服务分类",
+              "title": "Category"
+            },
+            "description": "服务分类"
+          },
+          {
+            "name": "search_query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "搜索关键词",
+              "title": "Search Query"
+            },
+            "description": "搜索关键词"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "返回数量",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "返回数量"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "偏移量",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "偏移量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServicePublic"
+                  },
+                  "title": "Response Get Services Api V1 Services Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "指导服务"
+        ],
+        "summary": "发布指导服务",
+        "description": "指导者发布新的指导服务",
+        "operationId": "create_service_api_v1_services_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/services/{service_id}": {
+      "get": {
+        "tags": [
+          "指导服务"
+        ],
+        "summary": "获取服务详情",
+        "description": "获取指定服务的详细信息",
+        "operationId": "get_service_api_v1_services__service_id__get",
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Service Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "指导服务"
+        ],
+        "summary": "更新服务信息",
+        "description": "指导者更新自己的服务信息",
+        "operationId": "update_service_api_v1_services__service_id__put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Service Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "指导服务"
+        ],
+        "summary": "删除服务",
+        "description": "指导者删除自己的服务",
+        "operationId": "delete_service_api_v1_services__service_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Service Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/services/my/services": {
+      "get": {
+        "tags": [
+          "指导服务"
+        ],
+        "summary": "获取我的服务",
+        "description": "获取当前用户发布的所有服务",
+        "operationId": "get_my_services_api_v1_services_my_services_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ServiceRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get My Services Api V1 Services My Services Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/sessions": {
+      "post": {
+        "tags": [
+          "指导会话"
+        ],
+        "summary": "创建指导会话",
+        "description": "学生创建指导会话预约",
+        "operationId": "create_session_api_v1_sessions_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "指导会话"
+        ],
+        "summary": "获取我的会话",
+        "description": "获取当前用户的所有会话",
+        "operationId": "get_my_sessions_api_v1_sessions_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "角色筛选（student/mentor）",
+              "title": "Role"
+            },
+            "description": "角色筛选（student/mentor）"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "返回数量",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "返回数量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionRead"
+                  },
+                  "title": "Response Get My Sessions Api V1 Sessions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "指导会话"
+        ],
+        "summary": "获取会话详情",
+        "description": "获取指定会话的详细信息",
+        "operationId": "get_session_detail_api_v1_sessions__session_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "指导会话"
+        ],
+        "summary": "更新会话信息",
+        "description": "更新会话的详细信息",
+        "operationId": "update_session_api_v1_sessions__session_id__put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}/start": {
+      "post": {
+        "tags": [
+          "指导会话"
+        ],
+        "summary": "开始会话",
+        "description": "开始进行指导会话",
+        "operationId": "start_session_api_v1_sessions__session_id__start_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Start Session Api V1 Sessions  Session Id  Start Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}/end": {
+      "post": {
+        "tags": [
+          "指导会话"
+        ],
+        "summary": "结束会话",
+        "description": "结束指导会话",
+        "operationId": "end_session_api_v1_sessions__session_id__end_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "actual_duration",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "实际时长（分钟）",
+              "title": "Actual Duration"
+            },
+            "description": "实际时长（分钟）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response End Session Api V1 Sessions  Session Id  End Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}/cancel": {
+      "post": {
+        "tags": [
+          "指导会话"
+        ],
+        "summary": "取消会话",
+        "description": "取消预定的指导会话",
+        "operationId": "cancel_session_api_v1_sessions__session_id__cancel_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "取消原因",
+              "title": "Reason"
+            },
+            "description": "取消原因"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Cancel Session Api V1 Sessions  Session Id  Cancel Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}/feedback": {
+      "post": {
+        "tags": [
+          "指导会话"
+        ],
+        "summary": "提交会话反馈",
+        "description": "提交会话反馈和评价",
+        "operationId": "submit_feedback_api_v1_sessions__session_id__feedback_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionFeedback"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Submit Feedback Api V1 Sessions  Session Id  Feedback Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}/summary": {
+      "post": {
+        "tags": [
+          "指导会话"
+        ],
+        "summary": "保存会话总结",
+        "description": "保存会话的详细总结信息",
+        "operationId": "save_summary_api_v1_sessions__session_id__summary_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionSummary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Save Summary Api V1 Sessions  Session Id  Summary Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/upcoming": {
+      "get": {
+        "tags": [
+          "指导会话"
+        ],
+        "summary": "获取即将到来的会话",
+        "description": "获取用户即将进行的会话",
+        "operationId": "get_upcoming_sessions_api_v1_sessions_upcoming_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "角色筛选（student/mentor）",
+              "title": "Role"
+            },
+            "description": "角色筛选（student/mentor）"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "description": "返回数量",
+              "default": 10,
+              "title": "Limit"
+            },
+            "description": "返回数量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionRead"
+                  },
+                  "title": "Response Get Upcoming Sessions Api V1 Sessions Upcoming Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/statistics": {
+      "get": {
+        "tags": [
+          "指导会话"
+        ],
+        "summary": "获取会话统计",
+        "description": "获取用户的会话统计信息",
+        "operationId": "get_session_statistics_api_v1_sessions_statistics_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "role",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "角色（student/mentor）",
+              "title": "Role"
+            },
+            "description": "角色（student/mentor）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Session Statistics Api V1 Sessions Statistics Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages": {
+      "get": {
+        "tags": [
+          "消息系统"
+        ],
+        "summary": "获取消息列表",
+        "description": "获取用户的消息列表",
+        "operationId": "get_messages_api_v1_messages_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "返回数量",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "返回数量"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "偏移量",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "偏移量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Message"
+                  },
+                  "title": "Response Get Messages Api V1 Messages Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "消息系统"
+        ],
+        "summary": "发送消息",
+        "description": "发送新消息",
+        "operationId": "send_message_api_v1_messages_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/{message_id}": {
+      "get": {
+        "tags": [
+          "消息系统"
+        ],
+        "summary": "获取消息详情",
+        "description": "获取指定消息的详情",
+        "operationId": "get_message_detail_api_v1_messages__message_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Message Detail Api V1 Messages  Message Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/{message_id}/read": {
+      "put": {
+        "tags": [
+          "消息系统"
+        ],
+        "summary": "标记消息为已读",
+        "description": "将消息标记为已读状态",
+        "operationId": "mark_message_as_read_api_v1_messages__message_id__read_put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Mark Message As Read Api V1 Messages  Message Id  Read Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/conversations": {
+      "get": {
+        "tags": [
+          "消息系统"
+        ],
+        "summary": "获取对话列表",
+        "description": "获取用户的所有对话",
+        "operationId": "get_conversations_api_v1_messages_conversations_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "返回数量",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "返回数量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConversationListItem"
+                  },
+                  "title": "Response Get Conversations Api V1 Messages Conversations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/conversations/{conversation_id}": {
+      "get": {
+        "tags": [
+          "消息系统"
+        ],
+        "summary": "获取对话消息",
+        "description": "获取指定对话的所有消息",
+        "operationId": "get_conversation_messages_api_v1_messages_conversations__conversation_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "description": "返回数量",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "返回数量"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "偏移量",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "偏移量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Message"
+                  },
+                  "title": "Response Get Conversation Messages Api V1 Messages Conversations  Conversation Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/files/upload/avatar": {
+      "post": {
+        "tags": [
+          "文件上传"
+        ],
+        "summary": "上传头像",
+        "description": "上传用户头像图片",
+        "operationId": "upload_avatar_api_v1_files_upload_avatar_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_avatar_api_v1_files_upload_avatar_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Upload Avatar Api V1 Files Upload Avatar Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/files/upload/document": {
+      "post": {
+        "tags": [
+          "文件上传"
+        ],
+        "summary": "上传文档",
+        "description": "上传用户文档文件",
+        "operationId": "upload_document_api_v1_files_upload_document_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_api_v1_files_upload_document_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Upload Document Api V1 Files Upload Document Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/files/upload/multiple": {
+      "post": {
+        "tags": [
+          "文件上传"
+        ],
+        "summary": "批量上传文件",
+        "description": "批量上传多个文件",
+        "operationId": "upload_multiple_files_api_v1_files_upload_multiple_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_multiple_files_api_v1_files_upload_multiple_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Upload Multiple Files Api V1 Files Upload Multiple Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/files/files/{file_id}": {
+      "delete": {
+        "tags": [
+          "文件上传"
+        ],
+        "summary": "删除文件",
+        "description": "删除已上传的文件",
+        "operationId": "delete_file_api_v1_files_files__file_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete File Api V1 Files Files  File Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/agents/status": {
+      "get": {
+        "tags": [
+          "AI智能体 v2.0"
+        ],
+        "summary": "获取系统状态",
+        "description": "获取v2.0智能体系统的运行状态\n\n返回系统初始化状态、可用服务等信息",
+        "operationId": "get_system_status_api_v2_agents_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/agents/info": {
+      "get": {
+        "tags": [
+          "AI智能体 v2.0"
+        ],
+        "summary": "获取架构信息",
+        "description": "获取v2.0智能体系统的架构信息\n\n返回系统版本、支持的智能体类型、功能模块等详细信息",
+        "operationId": "get_system_info_api_v2_agents_info_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchitectureInfoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/agents/planner/chat": {
+      "post": {
+        "tags": [
+          "AI智能体 v2.0"
+        ],
+        "summary": "留学规划师对话",
+        "description": "与留学规划师智能体对话\n\n留学规划师专注于：\n- 个性化留学申请策略制定\n- 选校建议和专业推荐\n- 申请时间规划\n- 引路人和服务推荐",
+        "operationId": "chat_with_planner_api_v2_agents_planner_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/agents/consultant/chat": {
+      "post": {
+        "tags": [
+          "AI智能体 v2.0"
+        ],
+        "summary": "留学咨询师对话",
+        "description": "与留学咨询师智能体对话\n\n留学咨询师专注于：\n- 留学政策和流程解答\n- 院校和专业信息咨询\n- 签证和生活问题解答\n- 留学经验分享",
+        "operationId": "chat_with_consultant_api_v2_agents_consultant_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/agents/chat": {
+      "post": {
+        "tags": [
+          "AI智能体 v2.0"
+        ],
+        "summary": "智能体自动选择对话",
+        "description": "智能选择智能体进行对话\n\n根据指定的智能体类型自动路由到相应的智能体：\n- study_planner: 留学规划师\n- study_consultant: 留学咨询师",
+        "operationId": "chat_with_auto_agent_api_v2_agents_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_chat_with_auto_agent_api_v2_agents_chat_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/agents/planner/invoke": {
+      "post": {
+        "tags": [
+          "AI智能体 v2.0"
+        ],
+        "summary": "留学规划师调用（兼容接口）",
+        "description": "兼容旧版API的留学规划师调用接口\n\n这是为了保持与前端现有代码的兼容性",
+        "operationId": "invoke_planner_api_v2_agents_planner_invoke_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/agents/health": {
+      "get": {
+        "tags": [
+          "AI智能体 v2.0"
+        ],
+        "summary": "智能体系统健康检查",
+        "description": "智能体系统健康检查",
+        "operationId": "health_check_api_v2_agents_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/planner/invoke": {
+      "post": {
+        "tags": [
+          "AI留学规划师 (兼容)",
+          "AI留学规划师"
+        ],
+        "summary": "调用AI留学规划师",
+        "description": "发送问题给AI留学规划师，获得专业的留学申请建议",
+        "operationId": "invoke_planner_api_v1_planner_invoke_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlannerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/planner/health": {
+      "get": {
+        "tags": [
+          "AI留学规划师 (兼容)",
+          "AI留学规划师"
+        ],
+        "summary": "AI服务健康检查",
+        "description": "检查AI留学规划师服务状态",
+        "operationId": "health_check_api_v1_planner_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/planner/capabilities": {
+      "get": {
+        "tags": [
+          "AI留学规划师 (兼容)",
+          "AI留学规划师"
+        ],
+        "summary": "获取AI能力说明",
+        "description": "获取AI留学规划师的能力说明",
+        "operationId": "get_capabilities_api_v1_planner_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "平台首页",
+        "description": "留学双边信息平台API首页",
+        "operationId": "read_root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "健康检查",
+        "description": "检查平台服务状态",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ArchitectureInfoResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "agent_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Agent Types"
+          },
+          "modules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Modules"
+          },
+          "features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Features"
+          },
+          "tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tools"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "author",
+          "agent_types",
+          "modules",
+          "features",
+          "tools"
+        ],
+        "title": "ArchitectureInfoResponse",
+        "description": "架构信息响应"
+      },
+      "Body_chat_with_auto_agent_api_v2_agents_chat_post": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/ChatRequest"
+          },
+          "agent_type": {
+            "type": "string",
+            "title": "Agent Type",
+            "description": "智能体类型: study_planner 或 study_consultant",
+            "default": "study_planner"
+          }
+        },
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "title": "Body_chat_with_auto_agent_api_v2_agents_chat_post"
+      },
+      "Body_login_api_v1_auth_login_post": {
+        "properties": {
+          "grant_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "password"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Type"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": ""
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "client_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Secret"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Body_login_api_v1_auth_login_post"
+      },
+      "Body_upload_avatar_api_v1_files_upload_avatar_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File",
+            "description": "头像图片文件"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_avatar_api_v1_files_upload_avatar_post"
+      },
+      "Body_upload_document_api_v1_files_upload_document_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File",
+            "description": "文档文件"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "文件描述"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_document_api_v1_files_upload_document_post"
+      },
+      "Body_upload_multiple_files_api_v1_files_upload_multiple_post": {
+        "properties": {
+          "files": {
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "type": "array",
+            "title": "Files",
+            "description": "文件列表"
+          },
+          "file_type": {
+            "type": "string",
+            "title": "File Type",
+            "description": "文件类型: avatar 或 document",
+            "default": "document"
+          }
+        },
+        "type": "object",
+        "required": [
+          "files"
+        ],
+        "title": "Body_upload_multiple_files_api_v1_files_upload_multiple_post"
+      },
+      "ChatRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Message",
+            "description": "用户消息"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "description": "用户ID"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "会话ID（可选）"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "user_id"
+        ],
+        "title": "ChatRequest",
+        "description": "智能体对话请求"
+      },
+      "ChatResponse": {
+        "properties": {
+          "response": {
+            "type": "string",
+            "title": "Response",
+            "description": "智能体回复"
+          },
+          "agent_type": {
+            "type": "string",
+            "title": "Agent Type",
+            "description": "智能体类型"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "API版本",
+            "default": "2.0"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "description": "用户ID"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "会话ID"
+          }
+        },
+        "type": "object",
+        "required": [
+          "response",
+          "agent_type",
+          "user_id"
+        ],
+        "title": "ChatResponse",
+        "description": "智能体对话响应"
+      },
+      "ConversationListItem": {
+        "properties": {
+          "conversation_id": {
+            "type": "integer",
+            "title": "Conversation Id"
+          },
+          "mentor_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mentor Id"
+          },
+          "mentor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mentor Name"
+          },
+          "mentor_avatar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mentor Avatar"
+          },
+          "student_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Id"
+          },
+          "student_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Name"
+          },
+          "student_avatar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Avatar"
+          },
+          "last_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Message"
+          },
+          "last_message_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Message Time"
+          },
+          "unread_count": {
+            "type": "integer",
+            "title": "Unread Count",
+            "default": 0
+          },
+          "is_online": {
+            "type": "boolean",
+            "title": "Is Online",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "conversation_id"
+        ],
+        "title": "ConversationListItem",
+        "description": "对话列表项"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MatchingFilter": {
+        "properties": {
+          "universities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Universities"
+          },
+          "majors": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Majors"
+          },
+          "degree_levels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degree Levels"
+          },
+          "graduation_year_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graduation Year Min"
+          },
+          "graduation_year_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graduation Year Max"
+          },
+          "rating_min": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 5.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Min"
+          },
+          "min_sessions": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Sessions"
+          },
+          "specialties": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialties"
+          },
+          "languages": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Languages"
+          },
+          "price_range": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Range"
+          },
+          "availability_required": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Availability Required"
+          }
+        },
+        "type": "object",
+        "title": "MatchingFilter",
+        "description": "高级筛选条件"
+      },
+      "MatchingRequest": {
+        "properties": {
+          "target_universities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Target Universities",
+            "description": "目标大学"
+          },
+          "target_majors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Target Majors",
+            "description": "目标专业"
+          },
+          "degree_level": {
+            "type": "string",
+            "pattern": "^(bachelor|master|phd)$",
+            "title": "Degree Level",
+            "description": "申请学位"
+          },
+          "service_categories": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Categories",
+            "description": "需要的服务类型"
+          },
+          "budget_min": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Min",
+            "description": "预算下限"
+          },
+          "budget_max": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Max",
+            "description": "预算上限"
+          },
+          "preferred_languages": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Languages",
+            "description": "偏好语言"
+          },
+          "urgency": {
+            "type": "string",
+            "pattern": "^(low|medium|high|urgent)$",
+            "title": "Urgency",
+            "description": "紧急程度",
+            "default": "medium"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_universities",
+          "target_majors",
+          "degree_level"
+        ],
+        "title": "MatchingRequest",
+        "description": "匹配请求"
+      },
+      "MentorCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "指导关系标题"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "指导描述"
+          },
+          "learning_goals": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learning Goals",
+            "description": "学习目标"
+          },
+          "hourly_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hourly Rate",
+            "description": "时薪"
+          },
+          "session_duration_minutes": {
+            "type": "integer",
+            "title": "Session Duration Minutes",
+            "description": "会话时长（分钟）",
+            "default": 60
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "MentorCreate",
+        "description": "创建指导者资料"
+      },
+      "MentorProfile": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "指导关系标题"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "指导描述"
+          },
+          "learning_goals": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learning Goals",
+            "description": "学习目标"
+          },
+          "hourly_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hourly Rate",
+            "description": "时薪"
+          },
+          "session_duration_minutes": {
+            "type": "integer",
+            "title": "Session Duration Minutes",
+            "description": "会话时长（分钟）",
+            "default": 60
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "mentor_id": {
+            "type": "integer",
+            "title": "Mentor Id"
+          },
+          "mentee_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mentee Id"
+          },
+          "skill_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skill Id"
+          },
+          "match_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Id"
+          },
+          "success_criteria": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Success Criteria"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "estimated_end_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated End Date"
+          },
+          "total_sessions_planned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Sessions Planned"
+          },
+          "total_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Amount"
+          },
+          "payment_schedule": {
+            "type": "string",
+            "title": "Payment Schedule",
+            "description": "付款时间表",
+            "default": "per_session"
+          },
+          "relationship_type": {
+            "type": "string",
+            "title": "Relationship Type",
+            "description": "关系类型",
+            "default": "guidance"
+          },
+          "preferred_communication": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Communication"
+          },
+          "meeting_frequency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Frequency"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "状态",
+            "default": "active"
+          },
+          "cancellation_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancellation Reason"
+          },
+          "sessions_completed": {
+            "type": "integer",
+            "title": "Sessions Completed",
+            "description": "已完成会话数",
+            "default": 0
+          },
+          "total_hours_spent": {
+            "type": "number",
+            "title": "Total Hours Spent",
+            "description": "总花费时间",
+            "default": 0.0
+          },
+          "last_session_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Session At"
+          },
+          "next_session_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Session At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "description": "货币类型",
+            "default": "CNY"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "id",
+          "mentor_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "MentorProfile",
+        "description": "完整的指导者资料"
+      },
+      "MentorPublic": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "mentor_id": {
+            "type": "integer",
+            "title": "Mentor Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "hourly_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hourly Rate"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "sessions_completed": {
+            "type": "integer",
+            "title": "Sessions Completed",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "mentor_id",
+          "title"
+        ],
+        "title": "MentorPublic",
+        "description": "公开的指导者信息（用于搜索和展示）"
+      },
+      "MentorUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "learning_goals": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learning Goals"
+          },
+          "hourly_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hourly Rate"
+          },
+          "session_duration_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Duration Minutes"
+          }
+        },
+        "type": "object",
+        "title": "MentorUpdate",
+        "description": "更新指导者资料"
+      },
+      "Message": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "conversation_id": {
+            "type": "integer",
+            "title": "Conversation Id"
+          },
+          "sender_id": {
+            "type": "integer",
+            "title": "Sender Id"
+          },
+          "recipient_id": {
+            "type": "integer",
+            "title": "Recipient Id"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "message_type": {
+            "$ref": "#/components/schemas/MessageType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MessageStatus",
+            "default": "sent"
+          },
+          "is_read": {
+            "type": "boolean",
+            "title": "Is Read",
+            "default": false
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "conversation_id",
+          "sender_id",
+          "recipient_id",
+          "content",
+          "message_type",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "Message",
+        "description": "消息详情"
+      },
+      "MessageCreate": {
+        "properties": {
+          "recipient_id": {
+            "type": "integer",
+            "title": "Recipient Id",
+            "description": "接收者ID"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Content",
+            "description": "消息内容"
+          },
+          "message_type": {
+            "$ref": "#/components/schemas/MessageType",
+            "description": "消息类型",
+            "default": "text"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id",
+            "description": "对话ID"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recipient_id",
+          "content"
+        ],
+        "title": "MessageCreate",
+        "description": "创建消息"
+      },
+      "MessageStatus": {
+        "type": "string",
+        "enum": [
+          "sent",
+          "delivered",
+          "read"
+        ],
+        "title": "MessageStatus"
+      },
+      "MessageType": {
+        "type": "string",
+        "enum": [
+          "text",
+          "image",
+          "file",
+          "system"
+        ],
+        "title": "MessageType"
+      },
+      "PlannerRequest": {
+        "properties": {
+          "input": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Input",
+            "description": "用户的留学咨询问题"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "会话ID，用于支持多轮对话"
+          },
+          "stream": {
+            "type": "boolean",
+            "title": "Stream",
+            "description": "是否使用流式响应",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "input"
+        ],
+        "title": "PlannerRequest",
+        "description": "AI规划师请求模型"
+      },
+      "ProfileRead": {
+        "properties": {
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name",
+            "description": "真实姓名"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url",
+            "description": "头像URL"
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio",
+            "description": "个人简介"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "created_at"
+        ],
+        "title": "ProfileRead",
+        "description": "用户资料读取数据模型"
+      },
+      "ProfileUpdate": {
+        "properties": {
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name",
+            "description": "真实姓名"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url",
+            "description": "头像URL"
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio",
+            "description": "个人简介"
+          }
+        },
+        "type": "object",
+        "title": "ProfileUpdate",
+        "description": "用户资料更新数据模型"
+      },
+      "RecommendationRequest": {
+        "properties": {
+          "user_preferences": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "User Preferences",
+            "description": "用户偏好"
+          },
+          "context": {
+            "type": "string",
+            "pattern": "^(homepage|search|profile|service)$",
+            "title": "Context",
+            "description": "推荐上下文"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "description": "推荐数量",
+            "default": 10
+          },
+          "exclude_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exclude Ids",
+            "description": "排除的指导者ID"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_preferences",
+          "context"
+        ],
+        "title": "RecommendationRequest",
+        "description": "推荐请求"
+      },
+      "ServiceCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title",
+            "description": "服务标题"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Description",
+            "description": "服务描述"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "服务分类"
+          },
+          "price": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Price",
+            "description": "服务价格（整数）"
+          },
+          "duration_hours": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Duration Hours",
+            "description": "服务时长（小时）"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "category",
+          "price",
+          "duration_hours"
+        ],
+        "title": "ServiceCreate",
+        "description": "创建服务"
+      },
+      "ServicePublic": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "navigator_id": {
+            "type": "integer",
+            "title": "Navigator Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "price": {
+            "type": "integer",
+            "title": "Price"
+          },
+          "duration_hours": {
+            "type": "integer",
+            "title": "Duration Hours"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "navigator_id",
+          "title",
+          "description",
+          "category",
+          "price",
+          "duration_hours",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ServicePublic",
+        "description": "公开的服务信息（用于搜索和展示） - 匹配实际 services 表结构"
+      },
+      "ServiceRead": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title",
+            "description": "服务标题"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Description",
+            "description": "服务描述"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "服务分类"
+          },
+          "price": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Price",
+            "description": "服务价格（整数）"
+          },
+          "duration_hours": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Duration Hours",
+            "description": "服务时长（小时）"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "navigator_id": {
+            "type": "integer",
+            "title": "Navigator Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "是否可用",
+            "default": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "category",
+          "price",
+          "duration_hours",
+          "id",
+          "navigator_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ServiceRead",
+        "description": "服务详情 - 匹配实际 services 表结构"
+      },
+      "ServiceUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "duration_hours": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Hours"
+          }
+        },
+        "type": "object",
+        "title": "ServiceUpdate",
+        "description": "更新服务"
+      },
+      "SessionCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title",
+            "description": "会话标题"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "会话描述"
+          },
+          "session_type": {
+            "type": "string",
+            "pattern": "^(consultation|document_review|interview_prep|planning|follow_up)$",
+            "title": "Session Type",
+            "description": "会话类型"
+          },
+          "scheduled_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled Time",
+            "description": "预定时间"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "maximum": 180.0,
+            "minimum": 30.0,
+            "title": "Duration Minutes",
+            "description": "持续时间（分钟）"
+          },
+          "meeting_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Link",
+            "description": "会议链接"
+          },
+          "meeting_platform": {
+            "type": "string",
+            "title": "Meeting Platform",
+            "description": "会议平台",
+            "default": "zoom"
+          },
+          "mentor_id": {
+            "type": "integer",
+            "title": "Mentor Id"
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Id",
+            "description": "关联订单ID"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "session_type",
+          "scheduled_time",
+          "duration_minutes",
+          "mentor_id"
+        ],
+        "title": "SessionCreate",
+        "description": "创建指导会话"
+      },
+      "SessionFeedback": {
+        "properties": {
+          "session_id": {
+            "type": "integer",
+            "title": "Session Id"
+          },
+          "rating": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Rating",
+            "description": "评分"
+          },
+          "content_quality": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Content Quality",
+            "description": "内容质量"
+          },
+          "communication": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Communication",
+            "description": "沟通效果"
+          },
+          "punctuality": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Punctuality",
+            "description": "准时性"
+          },
+          "helpfulness": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Helpfulness",
+            "description": "有用性"
+          },
+          "comments": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comments",
+            "description": "文字评价"
+          },
+          "would_recommend": {
+            "type": "boolean",
+            "title": "Would Recommend",
+            "description": "是否推荐"
+          },
+          "improvement_suggestions": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Improvement Suggestions",
+            "description": "改进建议"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "rating",
+          "content_quality",
+          "communication",
+          "punctuality",
+          "helpfulness",
+          "would_recommend"
+        ],
+        "title": "SessionFeedback",
+        "description": "会话反馈"
+      },
+      "SessionRead": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title",
+            "description": "会话标题"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "会话描述"
+          },
+          "session_type": {
+            "type": "string",
+            "pattern": "^(consultation|document_review|interview_prep|planning|follow_up)$",
+            "title": "Session Type",
+            "description": "会话类型"
+          },
+          "scheduled_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled Time",
+            "description": "预定时间"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "maximum": 180.0,
+            "minimum": 30.0,
+            "title": "Duration Minutes",
+            "description": "持续时间（分钟）"
+          },
+          "meeting_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Link",
+            "description": "会议链接"
+          },
+          "meeting_platform": {
+            "type": "string",
+            "title": "Meeting Platform",
+            "description": "会议平台",
+            "default": "zoom"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "mentor_id": {
+            "type": "integer",
+            "title": "Mentor Id"
+          },
+          "student_id": {
+            "type": "integer",
+            "title": "Student Id"
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "actual_start_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Start Time"
+          },
+          "actual_end_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual End Time"
+          },
+          "actual_duration": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Duration"
+          },
+          "mentor_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mentor Notes"
+          },
+          "student_feedback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Feedback"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "mentor_name": {
+            "type": "string",
+            "title": "Mentor Name"
+          },
+          "student_name": {
+            "type": "string",
+            "title": "Student Name"
+          },
+          "service_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "session_type",
+          "scheduled_time",
+          "duration_minutes",
+          "id",
+          "mentor_id",
+          "student_id",
+          "order_id",
+          "status",
+          "actual_start_time",
+          "actual_end_time",
+          "actual_duration",
+          "mentor_notes",
+          "student_feedback",
+          "rating",
+          "created_at",
+          "updated_at",
+          "mentor_name",
+          "student_name",
+          "service_title"
+        ],
+        "title": "SessionRead",
+        "description": "指导会话详情"
+      },
+      "SessionSummary": {
+        "properties": {
+          "session_id": {
+            "type": "integer",
+            "title": "Session Id"
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Points",
+            "description": "要点总结"
+          },
+          "decisions_made": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Decisions Made",
+            "description": "做出的决定",
+            "default": []
+          },
+          "action_items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Action Items",
+            "description": "行动项目",
+            "default": []
+          },
+          "resources_shared": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Resources Shared",
+            "description": "分享的资源",
+            "default": []
+          },
+          "next_session_plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Session Plan",
+            "description": "下次会话计划"
+          },
+          "created_by": {
+            "type": "string",
+            "pattern": "^(mentor|student|system)$",
+            "title": "Created By",
+            "description": "创建者"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "key_points",
+          "created_by"
+        ],
+        "title": "SessionSummary",
+        "description": "会话总结"
+      },
+      "SessionUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "scheduled_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled Time"
+          },
+          "duration_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Minutes"
+          },
+          "meeting_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Link"
+          },
+          "meeting_platform": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Platform"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(scheduled|confirmed|in_progress|completed|cancelled|rescheduled)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "title": "SessionUpdate",
+        "description": "更新指导会话"
+      },
+      "StudentCreate": {
+        "properties": {
+          "urgency_level": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Urgency Level",
+            "description": "紧急程度 1-5",
+            "default": 1
+          },
+          "budget_min": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Min",
+            "description": "最小预算"
+          },
+          "budget_max": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Max",
+            "description": "最大预算"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "学习需求描述"
+          },
+          "learning_goals": {
+            "type": "string",
+            "title": "Learning Goals",
+            "description": "学习目标"
+          },
+          "preferred_format": {
+            "type": "string",
+            "title": "Preferred Format",
+            "description": "偏好形式",
+            "default": "online"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description",
+          "learning_goals"
+        ],
+        "title": "StudentCreate",
+        "description": "创建申请者资料"
+      },
+      "StudentProfile": {
+        "properties": {
+          "urgency_level": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Urgency Level",
+            "description": "紧急程度 1-5",
+            "default": 1
+          },
+          "budget_min": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Min",
+            "description": "最小预算"
+          },
+          "budget_max": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Max",
+            "description": "最大预算"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "学习需求描述"
+          },
+          "learning_goals": {
+            "type": "string",
+            "title": "Learning Goals",
+            "description": "学习目标"
+          },
+          "preferred_format": {
+            "type": "string",
+            "title": "Preferred Format",
+            "description": "偏好形式",
+            "default": "online"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "skill_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skill Id"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "description": "货币类型",
+            "default": "CNY"
+          },
+          "preferred_duration": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Duration"
+          },
+          "current_level": {
+            "type": "integer",
+            "title": "Current Level",
+            "description": "当前水平",
+            "default": 1
+          },
+          "target_level": {
+            "type": "integer",
+            "title": "Target Level",
+            "description": "目标水平",
+            "default": 2
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "是否激活",
+            "default": true
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description",
+          "learning_goals",
+          "id",
+          "user_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "StudentProfile",
+        "description": "完整的申请者资料"
+      },
+      "StudentPublic": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "learning_goals": {
+            "type": "string",
+            "title": "Learning Goals"
+          },
+          "urgency_level": {
+            "type": "integer",
+            "title": "Urgency Level"
+          },
+          "preferred_format": {
+            "type": "string",
+            "title": "Preferred Format"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "description",
+          "learning_goals",
+          "urgency_level",
+          "preferred_format"
+        ],
+        "title": "StudentPublic",
+        "description": "公开的申请者信息"
+      },
+      "StudentUpdate": {
+        "properties": {
+          "urgency_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Urgency Level"
+          },
+          "budget_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Min"
+          },
+          "budget_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Max"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "learning_goals": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learning Goals"
+          },
+          "preferred_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Format"
+          },
+          "current_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Level"
+          },
+          "target_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Level"
+          }
+        },
+        "type": "object",
+        "title": "StudentUpdate",
+        "description": "更新申请者资料"
+      },
+      "SystemStatusResponse": {
+        "properties": {
+          "is_initialized": {
+            "type": "boolean",
+            "title": "Is Initialized",
+            "description": "系统是否初始化"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "系统版本"
+          },
+          "available_agents": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Available Agents",
+            "description": "可用的智能体类型"
+          },
+          "external_services": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "External Services",
+            "description": "外部服务状态"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_initialized",
+          "version",
+          "available_agents",
+          "external_services"
+        ],
+        "title": "SystemStatusResponse",
+        "description": "系统状态响应"
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires In"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "Token",
+        "description": "Token 响应数据模型"
+      },
+      "UserCreate": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 3,
+            "title": "Username",
+            "description": "用户名"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email",
+            "description": "邮箱地址"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "title": "Password",
+            "description": "密码"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role",
+            "description": "用户角色: user, student, mentor, admin",
+            "default": "user"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "UserCreate",
+        "description": "用户创建数据模型"
+      },
+      "UserRead": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 3,
+            "title": "Username",
+            "description": "用户名"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email",
+            "description": "邮箱地址"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "用户角色",
+            "default": "user"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "用户是否激活",
+            "default": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "id",
+          "created_at"
+        ],
+        "title": "UserRead",
+        "description": "用户读取数据模型"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "type": "oauth2",
+        "description": "使用用户名和密码获取访问令牌",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/api/v1/auth/login"
+          }
+        }
+      }
+    }
+  }
+}

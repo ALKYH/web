@@ -188,44 +188,44 @@ function SearchField({
                         {filteredSuggestions.filter(
                           s => s.type === 'university'
                         ).length > 0 && (
-                            <CommandGroup heading="搜索结果 - 大学">
-                              {filteredSuggestions
-                                .filter(s => s.type === 'university')
-                                .map(suggestion => (
-                                  <CommandItem
-                                    key={suggestion.value}
-                                    value={suggestion.value}
-                                    onSelect={() =>
-                                      handleSelectSuggestion(suggestion)
-                                    }
-                                    className="cursor-pointer"
-                                  >
-                                    {suggestion.label}
-                                  </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          )}
+                          <CommandGroup heading="搜索结果 - 大学">
+                            {filteredSuggestions
+                              .filter(s => s.type === 'university')
+                              .map(suggestion => (
+                                <CommandItem
+                                  key={suggestion.value}
+                                  value={suggestion.value}
+                                  onSelect={() =>
+                                    handleSelectSuggestion(suggestion)
+                                  }
+                                  className="cursor-pointer"
+                                >
+                                  {suggestion.label}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        )}
 
                         {/* Majors group */}
                         {filteredSuggestions.filter(s => s.type === 'major')
                           .length > 0 && (
-                            <CommandGroup heading="搜索结果 - 专业">
-                              {filteredSuggestions
-                                .filter(s => s.type === 'major')
-                                .map(suggestion => (
-                                  <CommandItem
-                                    key={suggestion.value}
-                                    value={suggestion.value}
-                                    onSelect={() =>
-                                      handleSelectSuggestion(suggestion)
-                                    }
-                                    className="cursor-pointer"
-                                  >
-                                    {suggestion.label}
-                                  </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          )}
+                          <CommandGroup heading="搜索结果 - 专业">
+                            {filteredSuggestions
+                              .filter(s => s.type === 'major')
+                              .map(suggestion => (
+                                <CommandItem
+                                  key={suggestion.value}
+                                  value={suggestion.value}
+                                  onSelect={() =>
+                                    handleSelectSuggestion(suggestion)
+                                  }
+                                  className="cursor-pointer"
+                                >
+                                  {suggestion.label}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        )}
                       </>
                     ) : (
                       <div className="px-3 py-2 text-sm text-muted-foreground">

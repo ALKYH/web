@@ -38,7 +38,7 @@ export default function Component() {
           aria-label={previewUrl ? 'Change image' : 'Upload image'}
         >
           {previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               className="size-full object-cover"
               src={previewUrl}

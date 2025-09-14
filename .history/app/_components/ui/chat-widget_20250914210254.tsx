@@ -214,15 +214,15 @@ export default function ChatWidget({
                     <div className="max-w-[80%]">
                       <div className="bg-muted rounded-lg px-3 py-2">
                         <div className="text-xs">
-                          <ReactMarkdown
-                            components={{
-                              p: ({ ...props }) => (
-                                <p {...props} className="mb-1 last:mb-0" />
-                              ),
-                              ul: ({ ...props }) => (
-                                <ul {...props} className="list-disc pl-3" />
-                              ),
-                            }}
+                        <ReactMarkdown
+                          components={{
+                            p: ({ ...props }) => (
+                              <p {...props} className="mb-1 last:mb-0" />
+                            ),
+                            ul: ({ ...props }) => (
+                              <ul {...props} className="list-disc pl-3" />
+                            ),
+                          }}
                           >
                             {getMessageText(messages[0])}
                           </ReactMarkdown>
