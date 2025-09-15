@@ -9,7 +9,7 @@ from enum import Enum
 
 class CreditType(str, Enum):
     """积分类型"""
-    mentoring_points = "mentoring_points"
+    mentor_points = "mentor_points"
     learning_points = "learning_points"
     reputation_points = "reputation_points"
     bonus_points = "bonus_points"
@@ -69,7 +69,7 @@ class UserCreditLogListResponse(BaseModel):
 
 class CreditBalance(BaseModel):
     """积分余额"""
-    mentoring_points: int = 0
+    mentor_points: int = 0
     learning_points: int = 0
     reputation_points: int = 0
     total_points: int = 0

@@ -103,9 +103,9 @@ async def delete(db: DatabaseAdapter, user_id: int) -> bool:
 async def get_profile(db: DatabaseAdapter, user_id: int) -> Optional[Dict]:
     """获取用户资料"""
     query = """
-        SELECT 
+        SELECT
             u.id, u.username, u.email, u.role, u.is_active, u.created_at,
-            p.full_name, p.avatar_url, p.bio, p.phone, p.location, p.website, p.birth_date
+            p.id as profile_id, p.user_id, p.full_name, p.avatar_url, p.bio, p.phone, p.location, p.website, p.birth_date, p.created_at as profile_created_at, p.updated_at
         FROM users u
         LEFT JOIN profiles p ON u.id = p.user_id
         WHERE u.id = $1

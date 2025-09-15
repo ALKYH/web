@@ -141,7 +141,7 @@ class V2ConfigManager:
             )
         ]
     
-    def get_external_clients(self) -> Dict[str, Any]:
+    async def get_external_clients(self) -> Dict[str, Any]:
         """获取外部服务客户端配置"""
         if not self.config:
             raise RuntimeError("Configuration not loaded")
@@ -152,10 +152,16 @@ class V2ConfigManager:
         if self.config.redis_url:
             try:
                 import redis.asyncio as redis
-                clients['redis'] = redis.from_url(self.config.redis_url)
-                self.logger.info("Redis client configured")
+                redis_client = redis.from_url(self.config.redis_url)
+                # 测试连接
+                await redis_client.ping()
+                clients['redis'] = redis_client
+                self.logger.info("Redis client configured and connected")
             except ImportError:
                 self.logger.warning("redis package not installed, using local memory for caching")
+            except Exception as e:
+                self.logger.warning(f"Redis connection failed ({e}), using local memory for caching")
+                # 不设置redis客户端，让系统使用本地内存
         
         # Milvus客户端
         if self.config.milvus_host:
@@ -198,7 +204,7 @@ class V2ConfigManager:
                 raise RuntimeError("Configuration not loaded. Call load_from_settings() or load_from_env() first")
             
             # 获取外部客户端
-            clients = self.get_external_clients()
+            clients = await self.get_external_clients()
             
             # 初始化LLM管理器
             llm_configs = self.get_llm_configs()

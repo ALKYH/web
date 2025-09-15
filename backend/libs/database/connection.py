@@ -40,11 +40,22 @@ async def lifespan(app: FastAPI):
             await connection.fetchval("SELECT 1")
             
         logger.info("数据库连接池创建成功")
-        
+
+        # 初始化AI智能体系统 v2.0
+        try:
+            from libs.agents.v2.config import init_v2_from_settings
+            success = await init_v2_from_settings(settings)
+            if success:
+                logger.info("✅ AI智能体系统v2.0初始化成功")
+            else:
+                logger.warning("⚠️ AI智能体系统v2.0初始化失败，将使用模拟服务")
+        except Exception as e:
+            logger.warning(f"⚠️ AI智能体系统v2.0初始化异常: {e}")
+
     except Exception as e:
         logger.error(f"数据库连接池创建失败: {e}")
         db_pool = None
-    
+
     yield
     
     if db_pool:

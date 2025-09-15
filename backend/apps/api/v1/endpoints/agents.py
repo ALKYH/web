@@ -32,12 +32,17 @@ class ChatRequest(BaseModel):
     message: str = Field(..., description="用户消息", min_length=1, max_length=2000)
     session_id: Optional[str] = Field(None, description="会话ID（可选，会自动生成）")
 
+class AutoChatRequest(BaseModel):
+    """智能体自动选择对话请求"""
+    request: ChatRequest
+    agent_type: str = Field("study_planner", description="智能体类型 study_planner 或 study_consultant")
+
 class ChatResponse(BaseModel):
     """智能体对话响应"""
     response: str = Field(..., description="智能体回复")
     agent_type: str = Field(..., description="智能体类型")
     version: str = Field("2.0", description="API版本")
-    user_id: str = Field(..., description="用户ID") 
+    user_id: str = Field(..., description="用户ID")
     session_id: Optional[str] = Field(None, description="会话ID")
 
 class SystemStatusResponse(BaseModel):
@@ -259,8 +264,7 @@ async def chat_with_consultant(
 
 @router.post("/chat", response_model=ChatResponse, summary="智能体自动选择对话")
 async def chat_with_auto_agent(
-    request: ChatRequest = Body(...),
-    agent_type: str = Body("study_planner", description="智能体类型 study_planner 或 study_consultant"),
+    auto_request: AutoChatRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: DatabaseAdapter = Depends(get_database),
     _: None = Depends(verify_system_ready)
@@ -280,27 +284,27 @@ async def chat_with_auto_agent(
             raise HTTPException(status_code=402, detail="积分不足，请充值后继续使用")
 
         # 获取或创建会话
-        session_id = await get_or_create_session(db, user_id, request.session_id)
+        session_id = await get_or_create_session(db, user_id, auto_request.request.session_id)
 
-        if agent_type == "study_planner":
+        if auto_request.agent_type == "study_planner":
             agent = create_study_planner(str(user_id))
-        elif agent_type == "study_consultant":
+        elif auto_request.agent_type == "study_consultant":
             agent = create_study_consultant(str(user_id))
         else:
             raise HTTPException(
                 status_code=400,
-                detail=f"不支持的智能体类型 {agent_type}。支持的类型: study_planner, study_consultant"
+                detail=f"不支持的智能体类型 {auto_request.agent_type}。支持的类型: study_planner, study_consultant"
             )
 
         # 执行对话
-        response = await agent.execute(request.message)
+        response = await agent.execute(auto_request.request.message)
 
         # 记录交互日志
-        await log_agent_interaction(db, user_id, agent_type, request.message, response, session_id)
+        await log_agent_interaction(db, user_id, auto_request.agent_type, auto_request.request.message, response, session_id)
 
         return ChatResponse(
             response=response,
-            agent_type=agent_type,
+            agent_type=auto_request.agent_type,
             user_id=str(user_id),
             session_id=session_id
         )

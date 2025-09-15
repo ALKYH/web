@@ -25,18 +25,16 @@ async def read_current_user_profile(
 ):
     """
     获取当前用户的完整资料
-    
+
     包括基本信息和扩展资料
     """
     profile = await user_service.get_user_profile(db=db, user_id=int(current_user.id))
-    
+
     return ProfileRead(
-        id=profile["id"],
-        username=profile["username"],
-        email=profile.get("email"),
-        role=profile.get("role", "user"),
-        is_active=profile.get("is_active", True),
-        created_at=profile["created_at"],
+        id=profile["profile_id"] or profile["id"],  # 如果没有profile记录，使用user的id
+        user_id=profile["user_id"] or profile["id"],  # 如果没有profile记录，使用user的id作为user_id
+        created_at=profile.get("profile_created_at") or profile["created_at"],  # 使用profile的创建时间，如果没有则使用user的
+        updated_at=profile.get("updated_at") or profile["created_at"],  # 如果没有profile记录，使用user的创建时间
         full_name=profile.get("full_name"),
         avatar_url=profile.get("avatar_url"),
         bio=profile.get("bio"),
@@ -60,7 +58,7 @@ async def update_current_user_profile(
 ):
     """
     更新当前用户的资料
-    
+
     可以更新以下信息：
     - full_name: 真实姓名
     - avatar_url: 头像链接
@@ -71,14 +69,12 @@ async def update_current_user_profile(
     - birth_date: 生日
     """
     profile = await user_service.update_user_profile(db=db, user_id=int(current_user.id), profile_in=profile_in)
-    
+
     return ProfileRead(
-        id=profile["id"],
-        username=profile["username"],
-        email=profile.get("email"),
-        role=profile.get("role", "user"),
-        is_active=profile.get("is_active", True),
-        created_at=profile["created_at"],
+        id=profile["profile_id"] or profile["id"],  # 如果没有profile记录，使用user的id
+        user_id=profile["user_id"] or profile["id"],  # 如果没有profile记录，使用user的id作为user_id
+        created_at=profile.get("profile_created_at") or profile["created_at"],  # 使用profile的创建时间，如果没有则使用user的
+        updated_at=profile.get("updated_at") or profile["created_at"],  # 如果没有profile记录，使用user的创建时间
         full_name=profile.get("full_name"),
         avatar_url=profile.get("avatar_url"),
         bio=profile.get("bio"),
@@ -128,21 +124,19 @@ async def read_user_profile(
 ):
     """
     获取指定用户的公开资料
-    
+
     - **user_id**: 用户ID
-    
+
     返回该用户的公开资料信息
     """
     profile = await user_service.get_public_profile(db=db, user_id=user_id)
-    
+
     # 返回公开信息（敏感信息已在服务层隐藏）
     return ProfileRead(
-        id=profile["id"],
-        username=profile["username"],
-        email=profile.get("email"),  # 已在服务层设为None
-        role=profile.get("role", "user"),
-        is_active=profile.get("is_active", True),
-        created_at=profile["created_at"],
+        id=profile["profile_id"] or profile["id"],  # 如果没有profile记录，使用user的id
+        user_id=profile["user_id"] or profile["id"],  # 如果没有profile记录，使用user的id作为user_id
+        created_at=profile.get("profile_created_at") or profile["created_at"],  # 使用profile的创建时间，如果没有则使用user的
+        updated_at=profile.get("updated_at") or profile["created_at"],  # 如果没有profile记录，使用user的创建时间
         full_name=profile.get("full_name"),
         avatar_url=profile.get("avatar_url"),
         bio=profile.get("bio"),

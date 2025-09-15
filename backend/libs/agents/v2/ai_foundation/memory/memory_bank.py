@@ -60,11 +60,9 @@ class WorkingMemory:
             return []
             
         except Exception as e:
-            self.logger.error(f"获取会话历史失败: {e}")
-            raise MemoryException(
-                error_code=ErrorCode.MEMORY_RETRIEVAL_ERROR,
-                message=f"获取会话历史失败: {str(e)}"
-            )
+            self.logger.warning(f"获取会话历史失败，使用本地缓存: {e}")
+            # 如果Redis失败，使用本地缓存
+            return self.local_cache.get(f"session:{session_id}", [])
     
     async def add_interaction(
         self, 
@@ -95,11 +93,20 @@ class WorkingMemory:
                 self.local_cache[f"session:{session_id}"] = history
                 
         except Exception as e:
-            self.logger.error(f"添加交互失败: {e}")
-            raise MemoryException(
-                error_code=ErrorCode.MEMORY_STORAGE_ERROR,
-                message=f"添加交互失败: {str(e)}"
-            )
+            self.logger.warning(f"添加交互失败，使用本地缓存: {e}")
+            # 如果Redis失败，尝试使用本地缓存
+            try:
+                history = await self.get_session_history(session_id)
+                interaction = {
+                    "timestamp": datetime.now().isoformat(),
+                    "human": human_message,
+                    "assistant": ai_message
+                }
+                history.append(interaction)
+                self.local_cache[f"session:{session_id}"] = history
+                self.logger.info("成功保存到本地缓存")
+            except Exception as fallback_e:
+                self.logger.error(f"本地缓存也失败了: {fallback_e}")
     
     async def clear_session(self, session_id: str):
         """清除会话"""
@@ -110,7 +117,9 @@ class WorkingMemory:
                 self.local_cache.pop(f"session:{session_id}", None)
                 
         except Exception as e:
-            self.logger.error(f"清除会话失败: {e}")
+            self.logger.warning(f"清除会话失败，使用本地缓存: {e}")
+            # 如果Redis失败，尝试清除本地缓存
+            self.local_cache.pop(f"session:{session_id}", None)
 
 
 class LongTermMemory:
@@ -319,10 +328,13 @@ class MemoryBank:
             )
             
         except Exception as e:
-            self.logger.error(f"获取记忆上下文失败: {e}")
-            raise MemoryException(
-                error_code=ErrorCode.MEMORY_RETRIEVAL_ERROR,
-                message=f"获取记忆上下文失败: {str(e)}"
+            self.logger.warning(f"获取记忆上下文失败，使用空上下文: {e}")
+            # 返回空的上下文，避免整个对话失败
+            return MemoryContext(
+                session_history=[],
+                relevant_memories=[],
+                context_summary="无记忆上下文",
+                total_tokens=0
             )
     
     async def add_interaction(

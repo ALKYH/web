@@ -61,7 +61,7 @@ async def create_credit_transaction(db: DatabaseAdapter, transaction: CreditTran
     async with db.connection.transaction():
         # 获取当前余额
         wallet_query = """
-            SELECT mentoring_points, learning_points, reputation_points
+            SELECT mentor_points, learning_points, reputation_points
             FROM user_wallets
             WHERE user_id = $1
         """
@@ -73,11 +73,11 @@ async def create_credit_transaction(db: DatabaseAdapter, transaction: CreditTran
                 INSERT INTO user_wallets (user_id, created_at, updated_at)
                 VALUES ($1, NOW(), NOW())
             """, transaction.user_id)
-            wallet = {'mentoring_points': 0, 'learning_points': 0, 'reputation_points': 0}
+            wallet = {'mentor_points': 0, 'learning_points': 0, 'reputation_points': 0}
 
         # 计算新余额
-        if transaction.credit_type == 'mentoring_points':
-            new_balance = wallet['mentoring_points'] + transaction.amount
+        if transaction.credit_type == 'mentor_points':
+            new_balance = wallet['mentor_points'] + transaction.amount
         elif transaction.credit_type == 'learning_points':
             new_balance = wallet['learning_points'] + transaction.amount
         elif transaction.credit_type == 'reputation_points':
@@ -110,15 +110,15 @@ async def create_credit_transaction(db: DatabaseAdapter, transaction: CreditTran
 async def get_credit_balance(db: DatabaseAdapter, user_id: int) -> Dict[str, Any]:
     """获取用户的积分余额"""
     query = """
-        SELECT mentoring_points, learning_points, reputation_points,
-               mentoring_points + learning_points + reputation_points as total_points
+        SELECT mentor_points, learning_points, reputation_points,
+               mentor_points + learning_points + reputation_points as total_points
         FROM user_wallets
         WHERE user_id = $1
     """
     result = await db.fetch_one(query, user_id)
     if not result:
         return {
-            'mentoring_points': 0,
+            'mentor_points': 0,
             'learning_points': 0,
             'reputation_points': 0,
             'total_points': 0

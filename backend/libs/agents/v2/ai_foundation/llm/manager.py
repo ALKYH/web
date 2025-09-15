@@ -52,6 +52,7 @@ class LLMManager:
         self.providers: Dict[ModelProvider, Any] = {}
         self.usage_stats: Dict[str, Dict] = {}
         self.logger = logging.getLogger(__name__)
+        self.is_initialized = False
         
     async def initialize(self, model_configs: List[ModelConfig]):
         """初始化模型配置"""
@@ -61,7 +62,8 @@ class LLMManager:
                 await self._initialize_provider(config)
             
             self.logger.info(f"已初始化 {len(self.models)} 个模型")
-            
+            self.is_initialized = True
+
         except Exception as e:
             raise LLMException(
                 error_code=ErrorCode.LLM_PROVIDER_ERROR,
@@ -74,8 +76,8 @@ class LLMManager:
             from .providers.openai_provider import OpenAIProvider
             self.providers[config.name] = OpenAIProvider(config.api_key)
         elif config.provider == ModelProvider.OLLAMA:
-            from .providers.ollama_provider import OllamaProvider
-            self.providers[config.name] = OllamaProvider(config.api_key)
+            # TODO: 实现Ollama提供商
+            self.logger.warning(f"Ollama provider not implemented yet for model: {config.name}")
         # 可以继续添加其他提供商
         
     async def chat(
@@ -206,12 +208,23 @@ class EmbeddingManager:
         self.models: Dict[str, ModelConfig] = {}
         self.providers: Dict[str, Any] = {}
         self.logger = logging.getLogger(__name__)
+        self.is_initialized = False
     
     async def initialize(self, model_configs: List[ModelConfig]):
         """初始化嵌入模型"""
-        for config in model_configs:
-            self.models[config.name] = config
-            await self._initialize_embedding_provider(config)
+        try:
+            for config in model_configs:
+                self.models[config.name] = config
+                await self._initialize_embedding_provider(config)
+
+            self.logger.info(f"已初始化 {len(self.models)} 个嵌入模型")
+            self.is_initialized = True
+
+        except Exception as e:
+            raise LLMException(
+                error_code=ErrorCode.LLM_PROVIDER_ERROR,
+                message=f"嵌入管理器初始化失败: {str(e)}"
+            )
     
     async def _initialize_embedding_provider(self, config: ModelConfig):
         """初始化嵌入模型提供商"""
