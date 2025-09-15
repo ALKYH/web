@@ -154,5 +154,7 @@ backend/server.log
 backend/startup.log
 backend/uploads/
 backend/vector_store/
-backend/test/
+backend/tests/
+.cursor*
 temp/
+.history/

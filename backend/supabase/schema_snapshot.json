@@ -1,0 +1,2769 @@
+{
+  "database": "supabase",
+  "schema": "public",
+  "tables": {
+    "conversation_participants": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('conversation_participants_id_seq'::regclass)"
+        },
+        {
+          "name": "conversation_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "conversation_id",
+          "user_id"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "constraint": "conversation_participants_conversation_id_fkey",
+          "column": "conversation_id",
+          "ref_table": "conversations",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "conversation_participants_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "conversations": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('conversations_id_seq'::regclass)"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "last_message_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "conversations_last_message_id_fkey",
+          "column": "last_message_id",
+          "ref_table": "messages",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "forum_likes": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('forum_likes_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "post_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "reply_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "user_id",
+          "post_id",
+          "user_id",
+          "reply_id"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "constraint": "forum_likes_post_id_fkey",
+          "column": "post_id",
+          "ref_table": "forum_posts",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "forum_likes_reply_id_fkey",
+          "column": "reply_id",
+          "ref_table": "forum_replies",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "forum_likes_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "forum_posts": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('forum_posts_id_seq'::regclass)"
+        },
+        {
+          "name": "title",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "data_type": "text",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "author_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "category",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "tags",
+          "data_type": "ARRAY",
+          "is_nullable": true,
+          "default": "'{}'::text[]"
+        },
+        {
+          "name": "replies_count",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "likes_count",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "views_count",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "is_pinned",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "false"
+        },
+        {
+          "name": "is_hot",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "false"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "last_activity",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "is_anonymous",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "false"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "forum_posts_author_id_fkey",
+          "column": "author_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "forum_replies": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('forum_replies_id_seq'::regclass)"
+        },
+        {
+          "name": "post_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "content",
+          "data_type": "text",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "author_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "parent_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "likes_count",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "parent_reply_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "forum_replies_author_id_fkey",
+          "column": "author_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "forum_replies_parent_id_fkey",
+          "column": "parent_id",
+          "ref_table": "forum_replies",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "forum_replies_parent_reply_id_fkey",
+          "column": "parent_reply_id",
+          "ref_table": "forum_replies",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "forum_replies_post_id_fkey",
+          "column": "post_id",
+          "ref_table": "forum_posts",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "forum_reply_likes": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('forum_reply_likes_id_seq'::regclass)"
+        },
+        {
+          "name": "reply_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "reply_id",
+          "user_id"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "constraint": "forum_reply_likes_reply_id_fkey",
+          "column": "reply_id",
+          "ref_table": "forum_replies",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "forum_reply_likes_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "friends": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('friends_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "friend_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'pending'::character varying"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "user_id",
+          "friend_id"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "constraint": "friends_friend_id_fkey",
+          "column": "friend_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "friends_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "mentor_matches": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('mentor_matches_id_seq'::regclass)"
+        },
+        {
+          "name": "mentor_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentee_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "skill_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "learning_need_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentor_skill_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "match_score",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "match_algorithm",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'v1.0'::character varying"
+        },
+        {
+          "name": "match_factors",
+          "data_type": "jsonb",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'suggested'::character varying"
+        },
+        {
+          "name": "mentor_viewed_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentee_viewed_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentor_responded_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentee_responded_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "expires_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "(CURRENT_TIMESTAMP + '7 days'::interval)"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "mentor_matches_learning_need_id_fkey",
+          "column": "learning_need_id",
+          "ref_table": "user_learning_needs",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "mentor_matches_mentee_id_fkey",
+          "column": "mentee_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "mentor_matches_mentor_id_fkey",
+          "column": "mentor_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "mentor_matches_mentor_skill_id_fkey",
+          "column": "mentor_skill_id",
+          "ref_table": "user_skills",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "mentor_matches_skill_id_fkey",
+          "column": "skill_id",
+          "ref_table": "skills",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "mentorship_relationships": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('mentorship_relationships_id_seq'::regclass)"
+        },
+        {
+          "name": "mentor_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentee_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "skill_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "match_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "title",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "learning_goals",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "success_criteria",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "start_date",
+          "data_type": "date",
+          "is_nullable": true,
+          "default": "CURRENT_DATE"
+        },
+        {
+          "name": "estimated_end_date",
+          "data_type": "date",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "total_sessions_planned",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "session_duration_minutes",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "60"
+        },
+        {
+          "name": "hourly_rate",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "currency",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'CNY'::character varying"
+        },
+        {
+          "name": "total_amount",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "payment_schedule",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'per_session'::character varying"
+        },
+        {
+          "name": "relationship_type",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'paid'::character varying"
+        },
+        {
+          "name": "preferred_communication",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "meeting_frequency",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "timezone",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'pending'::character varying"
+        },
+        {
+          "name": "cancellation_reason",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "sessions_completed",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "total_hours_spent",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "last_session_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "next_session_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "completed_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "mentorship_relationships_match_id_fkey",
+          "column": "match_id",
+          "ref_table": "mentor_matches",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "mentorship_relationships_mentee_id_fkey",
+          "column": "mentee_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "mentorship_relationships_mentor_id_fkey",
+          "column": "mentor_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "mentorship_relationships_skill_id_fkey",
+          "column": "skill_id",
+          "ref_table": "skills",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "mentorship_reviews": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('mentorship_reviews_id_seq'::regclass)"
+        },
+        {
+          "name": "relationship_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "reviewer_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "reviewee_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "reviewer_role",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "overall_rating",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "communication_rating",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "expertise_rating",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "timeliness_rating",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "value_rating",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "professionalism_rating",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "comment",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "pros",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "areas_for_improvement",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "would_recommend",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "would_work_again",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "positive_tags",
+          "data_type": "ARRAY",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "negative_tags",
+          "data_type": "ARRAY",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "learning_objectives_met",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "skill_improvement",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "is_public",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "is_verified",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "false"
+        },
+        {
+          "name": "verification_notes",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "mentorship_reviews_relationship_id_fkey",
+          "column": "relationship_id",
+          "ref_table": "mentorship_relationships",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "mentorship_reviews_reviewee_id_fkey",
+          "column": "reviewee_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "mentorship_reviews_reviewer_id_fkey",
+          "column": "reviewer_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "mentorship_sessions": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('mentorship_sessions_id_seq'::regclass)"
+        },
+        {
+          "name": "relationship_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "session_number",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "scheduled_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "actual_start_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "actual_end_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "duration_minutes",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "agenda",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentor_notes",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentee_notes",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "key_topics",
+          "data_type": "ARRAY",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "homework_assigned",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "resources_shared",
+          "data_type": "ARRAY",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "next_session_plan",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'scheduled'::character varying"
+        },
+        {
+          "name": "cancellation_reason",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "rescheduled_from",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentor_satisfaction",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentee_satisfaction",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentor_feedback",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentee_feedback",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "progress_percentage",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "milestones_achieved",
+          "data_type": "ARRAY",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "mentorship_sessions_relationship_id_fkey",
+          "column": "relationship_id",
+          "ref_table": "mentorship_relationships",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "mentorship_transactions": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('mentorship_transactions_id_seq'::regclass)"
+        },
+        {
+          "name": "relationship_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "session_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "transaction_type",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "amount",
+          "data_type": "numeric",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "currency",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'CNY'::character varying"
+        },
+        {
+          "name": "payment_method",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "payment_status",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'pending'::character varying"
+        },
+        {
+          "name": "external_transaction_id",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "payment_gateway",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "gateway_response",
+          "data_type": "jsonb",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "platform_fee_rate",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0.05"
+        },
+        {
+          "name": "platform_fee_amount",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentor_amount",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "description",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "reference_number",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "processed_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "confirmed_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "reference_number"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "constraint": "mentorship_transactions_relationship_id_fkey",
+          "column": "relationship_id",
+          "ref_table": "mentorship_relationships",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "mentorship_transactions_session_id_fkey",
+          "column": "session_id",
+          "ref_table": "mentorship_sessions",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "messages": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('messages_id_seq'::regclass)"
+        },
+        {
+          "name": "sender_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "recipient_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "content",
+          "data_type": "text",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "message_type",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'text'::character varying"
+        },
+        {
+          "name": "is_read",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "false"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "conversation_id",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": "(gen_random_uuid())::character varying(50)"
+        },
+        {
+          "name": "status",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'sent'::character varying"
+        },
+        {
+          "name": "read_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "messages_receiver_id_fkey",
+          "column": "recipient_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "messages_sender_id_fkey",
+          "column": "sender_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "orders": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('orders_id_seq'::regclass)"
+        },
+        {
+          "name": "service_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "client_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "navigator_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'pending'::character varying"
+        },
+        {
+          "name": "scheduled_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "total_price",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "notes",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "orders_client_id_fkey",
+          "column": "client_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "orders_navigator_id_fkey",
+          "column": "navigator_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "orders_service_id_fkey",
+          "column": "service_id",
+          "ref_table": "services",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "profiles": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('profiles_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "full_name",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "avatar_url",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "bio",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "phone",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "location",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "website",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "birth_date",
+          "data_type": "date",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "user_id"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "constraint": "profiles_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "reviews": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('reviews_id_seq'::regclass)"
+        },
+        {
+          "name": "order_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "reviewer_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "rating",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "comment",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "reviews_order_id_fkey",
+          "column": "order_id",
+          "ref_table": "orders",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "reviews_reviewer_id_fkey",
+          "column": "reviewer_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "services": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('services_id_seq'::regclass)"
+        },
+        {
+          "name": "navigator_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "title",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "category",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "price",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "duration_hours",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "is_active",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "services_navigator_id_fkey",
+          "column": "navigator_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "skill_categories": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('skill_categories_id_seq'::regclass)"
+        },
+        {
+          "name": "name",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "name_en",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "description",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "icon_url",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "sort_order",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "is_active",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "name"
+        ]
+      ],
+      "foreign_keys": []
+    },
+    "skills": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('skills_id_seq'::regclass)"
+        },
+        {
+          "name": "category_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "name",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "name_en",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "description",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "difficulty_level",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "1"
+        },
+        {
+          "name": "sort_order",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "is_active",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "skills_category_id_fkey",
+          "column": "category_id",
+          "ref_table": "skill_categories",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "uploaded_files": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('uploaded_files_id_seq'::regclass)"
+        },
+        {
+          "name": "file_id",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "filename",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "original_filename",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "file_path",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "file_url",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "file_size",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "content_type",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "file_type",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "file_id"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "constraint": "uploaded_files_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "user_availability": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('user_availability_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "day_of_week",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "start_time",
+          "data_type": "time without time zone",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "end_time",
+          "data_type": "time without time zone",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "timezone",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'Asia/Shanghai'::character varying"
+        },
+        {
+          "name": "availability_type",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'mentoring'::character varying"
+        },
+        {
+          "name": "is_active",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "notes",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "user_availability_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "user_credit_logs": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('user_credit_logs_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "credit_type",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "amount",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "balance_after",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "reference_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "reference_type",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "description",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "expires_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "user_credit_logs_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "user_learning_needs": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('user_learning_needs_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "skill_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "urgency_level",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "1"
+        },
+        {
+          "name": "budget_min",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "budget_max",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "currency",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'CNY'::character varying"
+        },
+        {
+          "name": "preferred_format",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'online'::character varying"
+        },
+        {
+          "name": "preferred_duration",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "description",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "learning_goals",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "current_level",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "1"
+        },
+        {
+          "name": "target_level",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "2"
+        },
+        {
+          "name": "is_active",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "expires_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "(CURRENT_TIMESTAMP + '3 mons'::interval)"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "user_id",
+          "skill_id"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "constraint": "user_learning_needs_skill_id_fkey",
+          "column": "skill_id",
+          "ref_table": "skills",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "user_learning_needs_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "user_reputation_stats": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('user_reputation_stats_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "mentor_rating_avg",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentor_rating_count",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentor_relationships_total",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentor_relationships_completed",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentor_sessions_completed",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentor_hours_taught",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentor_success_rate",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentor_response_rate",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentor_punctuality_rate",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentee_rating_avg",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentee_rating_count",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentee_relationships_total",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentee_relationships_completed",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentee_sessions_attended",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentee_hours_learned",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentee_completion_rate",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "mentee_attendance_rate",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "reputation_score",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "trust_level",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'newcomer'::character varying"
+        },
+        {
+          "name": "badges",
+          "data_type": "ARRAY",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "last_active_as_mentor",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "last_active_as_mentee",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "user_id"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "constraint": "user_reputation_stats_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "user_skills": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('user_skills_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "skill_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "proficiency_level",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "1"
+        },
+        {
+          "name": "years_experience",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "can_mentor",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "false"
+        },
+        {
+          "name": "hourly_rate",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "currency",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'CNY'::character varying"
+        },
+        {
+          "name": "description",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "verified",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "false"
+        },
+        {
+          "name": "verified_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "verified_by",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "is_active",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "user_id",
+          "skill_id"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "constraint": "user_skills_skill_id_fkey",
+          "column": "skill_id",
+          "ref_table": "skills",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "user_skills_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        },
+        {
+          "constraint": "user_skills_verified_by_fkey",
+          "column": "verified_by",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "user_unavailable_periods": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('user_unavailable_periods_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "start_date",
+          "data_type": "date",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "end_date",
+          "data_type": "date",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "start_time",
+          "data_type": "time without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "end_time",
+          "data_type": "time without time zone",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "description",
+          "data_type": "text",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "affects_mentoring",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "affects_learning",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [],
+      "foreign_keys": [
+        {
+          "constraint": "user_unavailable_periods_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "user_wallets": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('user_wallets_id_seq'::regclass)"
+        },
+        {
+          "name": "user_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "balance",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "frozen_balance",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "currency",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'CNY'::character varying"
+        },
+        {
+          "name": "mentor_points",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "learning_points",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "reputation_points",
+          "data_type": "integer",
+          "is_nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "user_id"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "constraint": "user_wallets_user_id_fkey",
+          "column": "user_id",
+          "ref_table": "users",
+          "ref_column": "id"
+        }
+      ]
+    },
+    "users": {
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default": "nextval('users_id_seq'::regclass)"
+        },
+        {
+          "name": "username",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "email",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        },
+        {
+          "name": "password_hash",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default": null
+        },
+        {
+          "name": "role",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": "'user'::character varying"
+        },
+        {
+          "name": "is_active",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "avatar_url",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "unique_constraints": [
+        [
+          "username",
+          "email"
+        ]
+      ],
+      "foreign_keys": []
+    }
+  }
+}
