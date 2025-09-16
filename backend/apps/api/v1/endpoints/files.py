@@ -285,7 +285,7 @@ async def upload_multiple_files(
     return GeneralResponse(data=results)
 
 @router.delete(
-    "/files/{bucket_name}/{object_name}",
+    "/{bucket_name}/{object_name:path}",
     response_model=dict,
     summary="删除文件",
     description="删除已上传的文件"
@@ -340,7 +340,7 @@ async def delete_file(
 
 
 @router.get(
-    "/files/{bucket_name}/{object_name}",
+    "/{bucket_name}/{object_name:path}",
     response_model=dict,
     summary="获取文件信息",
     description="获取已上传文件的信息"
@@ -371,7 +371,9 @@ async def get_file_info(
             )
 
         # 获取文件信息
+        print(f"DEBUG: Getting file info for {bucket_name}/{object_name}")
         file_info = await minio_storage_manager.get_file_info(bucket_name, object_name)
+        print(f"DEBUG: File info retrieved: {file_info}")
 
         return file_info
 
@@ -385,7 +387,7 @@ async def get_file_info(
 
 
 @router.post(
-    "/files/{bucket_name}/{object_name}/refresh-url",
+    "/{bucket_name}/{object_name:path}/refresh-url",
     response_model=dict,
     summary="刷新文件URL",
     description="刷新文件的预签名URL"

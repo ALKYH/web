@@ -133,7 +133,11 @@ async def get_user_profile(db: DatabaseAdapter, user_id: UUID) -> Optional[Profi
         WHERE user_id = $1
     """
     row = await db.fetch_one(query, user_id)
-    return Profile(**row) if row else None
+    if row:
+        # 确保 user_id 是字符串类型
+        row['user_id'] = str(row['user_id'])
+        return Profile(**row)
+    return None
 
 
 async def update_user_profile(db: DatabaseAdapter, user_id: UUID, profile_data: ProfileUpdate) -> Optional[Profile]:
@@ -258,4 +262,8 @@ async def update_user_profile(db: DatabaseAdapter, user_id: UUID, profile_data: 
         )
 
     row = await db.fetch_one(query, *values)
-    return Profile(**row) if row else None
+    if row:
+        # 确保 user_id 是字符串类型
+        row['user_id'] = str(row['user_id'])
+        return Profile(**row)
+    return None

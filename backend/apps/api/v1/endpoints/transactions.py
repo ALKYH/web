@@ -207,7 +207,7 @@ async def update_user_wallet(
 # ============ 交易记录管理 ============
 
 @router.get(
-    "/transactions",
+    "",
     response_model=GeneralResponse[List[WalletTransaction]],
     summary="获取交易记录",
     description="获取当前用户的交易记录"
@@ -226,7 +226,7 @@ async def list_transactions(
     - **limit**: 返回数量（1-100）
     - **offset**: 偏移量
     """
-    transactions = await transaction_service.get_wallet_transactions(db, current_user.id, transaction_type, limit, offset)
+    transactions = await transaction_service.get_wallet_transactions(db, current_user.id, 1, limit)
     return GeneralResponse(data=transactions)
 
 

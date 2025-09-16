@@ -7,7 +7,8 @@ from uuid import UUID
 
 from apps.schemas.forum import (
     ForumPost as Post, ForumPostCreate as PostCreate, ForumPostUpdate as PostUpdate,
-    PostReply as Comment, PostReplyCreate as CommentCreate, PostReplyUpdate as CommentUpdate
+    PostReply as Comment, PostReplyCreate as CommentCreate, PostReplyUpdate as CommentUpdate,
+    PostReplyWithCounts
 )
 from libs.database.adapters import DatabaseAdapter
 
@@ -17,33 +18,37 @@ from libs.database.adapters import DatabaseAdapter
 async def get_posts(
     db: DatabaseAdapter,
     category: Optional[str] = None,
-    search_query: Optional[str] = None,
-    page: int = 1,
-    page_size: int = 20
+    tag: Optional[str] = None,
+    author_id: Optional[UUID] = None,
+    limit: int = 20,
+    offset: int = 0
 ) -> List[Post]:
     """获取帖子列表"""
-    offset = (page - 1) * page_size
-    where_conditions = ["is_deleted = false"]
+    where_conditions = []
     params = []
 
     if category:
-        where_conditions.append("category = $1")
+        where_conditions.append(f"category = ${len(params) + 1}")
         params.append(category)
 
-    if search_query:
-        where_conditions.append("(title ILIKE $1 OR content ILIKE $1)")
-        params.append(f"%{search_query}%")
+    if tag:
+        where_conditions.append(f"${len(params) + 1} = ANY(tags)")
+        params.append(tag)
 
-    where_clause = " AND ".join(where_conditions)
+    if author_id:
+        where_conditions.append(f"author_id = ${len(params) + 1}")
+        params.append(author_id)
+
+    where_clause = " AND ".join(where_conditions) if where_conditions else ""
 
     query = f"""
-        SELECT id, author_id, title, content, category, tags, view_count, like_count, comment_count, is_deleted, created_at, updated_at
-        FROM posts
-        WHERE {where_clause}
+        SELECT id, author_id, title, content, category, tags, views_count, created_at, updated_at
+        FROM forum_posts
+        {"WHERE " + where_clause if where_clause else ""}
         ORDER BY created_at DESC
         LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
     """
-    params.extend([page_size, offset])
+    params.extend([limit, offset])
 
     rows = await db.fetch_all(query, *params)
     return [Post(**row) for row in rows]
@@ -52,9 +57,9 @@ async def get_posts(
 async def get_post_by_id(db: DatabaseAdapter, post_id: UUID) -> Optional[Post]:
     """根据ID获取帖子"""
     query = """
-        SELECT id, author_id, title, content, category, tags, view_count, like_count, comment_count, is_deleted, created_at, updated_at
-        FROM posts
-        WHERE id = $1 AND is_deleted = false
+        SELECT id, author_id, title, content, category, tags, views_count, created_at, updated_at
+        FROM forum_posts
+        WHERE id = $1
     """
     row = await db.fetch_one(query, post_id)
     return Post(**row) if row else None
@@ -67,9 +72,9 @@ async def create_post(
 ) -> Optional[Post]:
     """创建帖子"""
     query = """
-        INSERT INTO posts (author_id, title, content, category, tags)
+        INSERT INTO forum_posts (author_id, title, content, category, tags)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, author_id, title, content, category, tags, view_count, like_count, comment_count, is_deleted, created_at, updated_at
+        RETURNING id, author_id, title, content, category, tags, views_count, created_at, updated_at
     """
     values = (
         author_id,
@@ -85,8 +90,8 @@ async def create_post(
 async def update_post(
     db: DatabaseAdapter,
     post_id: UUID,
-    author_id: UUID,
-    post_data: PostUpdate
+    post_data: PostUpdate,
+    author_id: UUID
 ) -> Optional[Post]:
     """更新帖子"""
     # 构建动态更新语句
@@ -120,10 +125,10 @@ async def update_post(
     set_parts.append("updated_at = NOW()")
 
     query = f"""
-        UPDATE posts
+        UPDATE forum_posts
         SET {', '.join(set_parts)}
-        WHERE id = ${param_index} AND author_id = ${param_index + 1} AND is_deleted = false
-        RETURNING id, author_id, title, content, category, tags, view_count, like_count, comment_count, is_deleted, created_at, updated_at
+        WHERE id = ${param_index} AND author_id = ${param_index + 1}
+        RETURNING id, author_id, title, content, category, tags, views_count, created_at, updated_at
     """
     values.extend([post_id, author_id])
 
@@ -132,146 +137,229 @@ async def update_post(
 
 
 async def delete_post(db: DatabaseAdapter, post_id: UUID, author_id: UUID) -> bool:
-    """软删除帖子"""
+    """删除帖子"""
     query = """
-        UPDATE posts
-        SET is_deleted = true, updated_at = NOW()
-        WHERE id = $1 AND author_id = $2 AND is_deleted = false
+        DELETE FROM forum_posts
+        WHERE id = $1 AND author_id = $2
     """
     result = await db.execute(query, post_id, author_id)
-    return result == "UPDATE 1"
+    return result == "DELETE 1"
 
 
 async def get_posts_by_author(db: DatabaseAdapter, author_id: UUID) -> List[Post]:
     """获取作者的帖子列表"""
     query = """
-        SELECT id, author_id, title, content, category, tags, view_count, like_count, comment_count, is_deleted, created_at, updated_at
-        FROM posts
-        WHERE author_id = $1 AND is_deleted = false
+        SELECT id, author_id, title, content, category, tags, views_count, created_at, updated_at
+        FROM forum_posts
+        WHERE author_id = $1
         ORDER BY created_at DESC
     """
     rows = await db.fetch_all(query, author_id)
     return [Post(**row) for row in rows]
 
 
+async def count_posts(
+    db: DatabaseAdapter,
+    category: Optional[str] = None,
+    tag: Optional[str] = None,
+    author_id: Optional[UUID] = None
+) -> int:
+    """统计帖子数量"""
+    where_conditions = []
+    params = []
+
+    if category:
+        where_conditions.append(f"category = ${len(params) + 1}")
+        params.append(category)
+
+    if tag:
+        where_conditions.append(f"${len(params) + 1} = ANY(tags)")
+        params.append(tag)
+
+    if author_id:
+        where_conditions.append(f"author_id = ${len(params) + 1}")
+        params.append(author_id)
+
+    where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+
+    query = f"""
+        SELECT COUNT(*) as count
+        FROM forum_posts
+        WHERE {where_clause}
+    """
+
+    row = await db.fetch_one(query, *params)
+    return row["count"] if row else 0
+
+
 # ============ 评论仓库操作 ============
 
-async def get_comments_by_post(
+async def get_post_replies(
     db: DatabaseAdapter,
     post_id: UUID,
-    page: int = 1,
-    page_size: int = 50
+    limit: int = 20,
+    offset: int = 0
 ) -> List[Comment]:
-    """获取帖子的评论列表"""
-    offset = (page - 1) * page_size
+    """获取帖子的回复列表"""
     query = """
-        SELECT id, post_id, author_id, parent_id, content, like_count, is_deleted, created_at, updated_at
-        FROM comments
-        WHERE post_id = $1 AND is_deleted = false
-        ORDER BY created_at ASC
+        SELECT pr.id, pr.post_id, pr.author_id, pr.parent_reply_id as parent_id, pr.content, pr.created_at, pr.updated_at,
+               COALESCE(like_counts.like_count, 0) as like_count
+        FROM post_replies pr
+        LEFT JOIN (
+            SELECT reply_id, COUNT(*) as like_count
+            FROM likes
+            WHERE reply_id IS NOT NULL
+            GROUP BY reply_id
+        ) like_counts ON pr.id = like_counts.reply_id
+        WHERE pr.post_id = $1
+        ORDER BY pr.created_at ASC
         LIMIT $2 OFFSET $3
     """
-    rows = await db.fetch_all(query, post_id, page_size, offset)
+    rows = await db.fetch_all(query, post_id, limit, offset)
     return [Comment(**row) for row in rows]
 
 
-async def create_comment(
+async def count_post_replies(db: DatabaseAdapter, post_id: UUID) -> int:
+    """统计帖子的回复数量"""
+    query = """
+        SELECT COUNT(*) as count
+        FROM post_replies
+        WHERE post_id = $1
+    """
+    row = await db.fetch_one(query, post_id)
+    return row["count"] if row else 0
+
+
+async def create_reply(
     db: DatabaseAdapter,
     post_id: UUID,
-    comment_data: CommentCreate,
+    reply_data: CommentCreate,
     author_id: UUID
 ) -> Optional[Comment]:
-    """创建评论"""
+    """创建回复"""
     query = """
-        INSERT INTO comments (post_id, author_id, parent_id, content)
+        INSERT INTO post_replies (post_id, author_id, parent_reply_id, content)
         VALUES ($1, $2, $3, $4)
-        RETURNING id, post_id, author_id, parent_id, content, like_count, is_deleted, created_at, updated_at
+        RETURNING id, post_id, author_id, parent_reply_id as parent_id, content, created_at, updated_at
     """
     values = (
         post_id,
         author_id,
-        comment_data.parent_id,
-        comment_data.content
+        reply_data.parent_reply_id,
+        reply_data.content
     )
     row = await db.fetch_one(query, *values)
-    if row:
-        # 增加帖子评论数
-        await increment_post_comment_count(db, post_id)
-        return Comment(**row)
-    return None
-
-
-async def update_comment(
-    db: DatabaseAdapter,
-    comment_id: UUID,
-    author_id: UUID,
-    comment_data: CommentUpdate
-) -> Optional[Comment]:
-    """更新评论"""
-    query = """
-        UPDATE comments
-        SET content = $1, updated_at = NOW()
-        WHERE id = $2 AND author_id = $3 AND is_deleted = false
-        RETURNING id, post_id, author_id, parent_id, content, like_count, is_deleted, created_at, updated_at
-    """
-    row = await db.fetch_one(query, comment_data.content, comment_id, author_id)
     return Comment(**row) if row else None
 
 
-async def delete_comment(
+async def update_reply(
     db: DatabaseAdapter,
-    comment_id: UUID,
+    reply_id: UUID,
+    reply_data: CommentUpdate,
+    author_id: UUID
+) -> Optional[Comment]:
+    """更新回复"""
+    query = """
+        UPDATE post_replies
+        SET content = $1, updated_at = NOW()
+        WHERE id = $2 AND author_id = $3
+        RETURNING id, post_id, author_id, parent_reply_id as parent_id, content, created_at, updated_at
+    """
+    row = await db.fetch_one(query, reply_data.content, reply_id, author_id)
+    return Comment(**row) if row else None
+
+
+async def delete_reply(
+    db: DatabaseAdapter,
+    reply_id: UUID,
     author_id: UUID
 ) -> bool:
-    """软删除评论"""
+    """删除回复"""
     query = """
-        UPDATE comments
-        SET is_deleted = true, updated_at = NOW()
-        WHERE id = $1 AND author_id = $2 AND is_deleted = false
+        DELETE FROM post_replies
+        WHERE id = $1 AND author_id = $2
     """
-    result = await db.execute(query, comment_id, author_id)
-    if result == "UPDATE 1":
-        # 减少帖子评论数
-        await decrement_post_comment_count_by_comment(db, comment_id)
-        return True
-    return False
+    result = await db.execute(query, reply_id, author_id)
+    return result == "DELETE 1"
 
 
 async def get_comments_by_author(db: DatabaseAdapter, author_id: UUID) -> List[Comment]:
-    """获取作者的评论列表"""
+    """获取作者的回复列表"""
     query = """
-        SELECT c.id, c.post_id, c.author_id, c.parent_id, c.content, c.like_count, c.is_deleted, c.created_at, c.updated_at,
-               p.title as post_title
-        FROM comments c
-        JOIN posts p ON c.post_id = p.id
-        WHERE c.author_id = $1 AND c.is_deleted = false
+        SELECT c.id, c.post_id, c.author_id, c.parent_reply_id as parent_id, c.content, c.created_at, c.updated_at
+        FROM post_replies c
+        WHERE c.author_id = $1
         ORDER BY c.created_at DESC
     """
     rows = await db.fetch_all(query, author_id)
-    # 这里需要处理额外的 post_title 字段，可能需要调整
-    return [Comment(**{k: v for k, v in row.items() if k in Comment.__annotations__}) for row in rows]
+    return [Comment(**row) for row in rows]
 
 
-async def increment_post_comment_count(db: DatabaseAdapter, post_id: UUID) -> None:
-    """增加帖子评论数"""
-    query = """
-        UPDATE posts
-        SET comment_count = comment_count + 1
-        WHERE id = $1
+
+
+# ============ 点赞仓库操作 ============
+
+async def like_post(db: DatabaseAdapter, post_id: UUID, user_id: UUID):
+    """点赞帖子"""
+    # 先检查是否已经点赞
+    check_query = """
+        SELECT id FROM likes
+        WHERE post_id = $1 AND user_id = $2
     """
-    await db.execute(query, post_id)
+    existing = await db.fetch_one(check_query, post_id, user_id)
 
+    if existing:
+        return existing
 
-async def decrement_post_comment_count_by_comment(
-    db: DatabaseAdapter,
-    comment_id: UUID
-) -> None:
-    """根据评论ID减少帖子评论数"""
-    query = """
-        UPDATE posts
-        SET comment_count = comment_count - 1
-        WHERE id = (
-            SELECT post_id FROM comments WHERE id = $1
-        ) AND comment_count > 0
+    # 创建点赞记录
+    insert_query = """
+        INSERT INTO likes (post_id, user_id)
+        VALUES ($1, $2)
+        RETURNING id, post_id, user_id, created_at
     """
-    await db.execute(query, comment_id)
+    like_record = await db.fetch_one(insert_query, post_id, user_id)
+
+    return like_record
+
+
+async def unlike_post(db: DatabaseAdapter, post_id: UUID, user_id: UUID) -> bool:
+    """取消点赞帖子"""
+    delete_query = """
+        DELETE FROM likes
+        WHERE post_id = $1 AND user_id = $2
+    """
+    result = await db.execute(delete_query, post_id, user_id)
+    return result == "DELETE 1"
+
+
+async def like_reply(db: DatabaseAdapter, reply_id: UUID, user_id: UUID):
+    """点赞回复"""
+    # 先检查是否已经点赞
+    check_query = """
+        SELECT id FROM likes
+        WHERE reply_id = $1 AND user_id = $2
+    """
+    existing = await db.fetch_one(check_query, reply_id, user_id)
+
+    if existing:
+        return existing
+
+    # 创建点赞记录
+    insert_query = """
+        INSERT INTO likes (reply_id, user_id)
+        VALUES ($1, $2)
+        RETURNING id, reply_id, user_id, created_at
+    """
+    like_record = await db.fetch_one(insert_query, reply_id, user_id)
+
+    return like_record
+
+
+async def unlike_reply(db: DatabaseAdapter, reply_id: UUID, user_id: UUID) -> bool:
+    """取消点赞回复"""
+    delete_query = """
+        DELETE FROM likes
+        WHERE reply_id = $1 AND user_id = $2
+    """
+    result = await db.execute(delete_query, reply_id, user_id)
+    return result == "DELETE 1"

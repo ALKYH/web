@@ -136,21 +136,21 @@ async def get_all_skills(db: DatabaseAdapter, is_active: Optional[bool] = True, 
     where_clause = "WHERE 1=1"
     params = []
 
-    if is_active is not None:
-        where_clause += " AND s.is_active = $1"
-        params.append(is_active)
+    # Note: skills table doesn't have is_active field, so we skip this filter
 
     query = f"""
-        SELECT s.id, s.category_id, s.name, s.name_en, s.description, s.difficulty_level,
-               s.sort_order, s.is_active, s.created_at, s.updated_at,
-               sc.name as category_name, sc.name_en as category_name_en,
-               COUNT(us.id) as mentor_count
+        SELECT s.id, s.category_id, s.name, NULL as name_en, NULL as description,
+               NULL as difficulty_level, NULL as sort_order, NULL as is_active,
+               s.created_at, s.updated_at,
+               sc.name as category_name, NULL as category_name_en,
+               COUNT(ms.id) as mentor_count
         FROM skills s
         LEFT JOIN skill_categories sc ON s.category_id = sc.id
-        LEFT JOIN user_skills us ON s.id = us.skill_id AND us.can_mentor = true AND us.is_active = true
+        LEFT JOIN user_skills us ON s.id = us.skill_id
+        LEFT JOIN mentor_skills ms ON ms.user_skill_id = us.id AND ms.can_mentor = true
         {where_clause}
-        GROUP BY s.id, sc.name, sc.name_en
-        ORDER BY s.sort_order, s.name
+        GROUP BY s.id, sc.name
+        ORDER BY s.name
         LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
     """
     params.extend([limit, skip])

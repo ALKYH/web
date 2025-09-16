@@ -16,6 +16,7 @@ class UserBase(BaseModel):
 
     username: str = Field(..., min_length=3, max_length=50, description="用户名")
     email: Optional[EmailStr] = Field(None, description="电子邮箱")
+    password_hash: str = Field(..., description="密码哈希值")
     role: str = Field("user", description="用户角色: user, student, mentor, admin")
     full_name: Optional[str] = Field(None, max_length=100, description="真实姓名")
     avatar_url: Optional[str] = Field(None, description="头像URL")
@@ -23,10 +24,17 @@ class UserBase(BaseModel):
     is_active: bool = Field(True, description="账户是否激活")
 
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
     """用户创建模型"""
 
+    username: str = Field(..., min_length=3, max_length=50, description="用户名")
+    email: Optional[EmailStr] = Field(None, description="电子邮箱")
     password: str = Field(..., min_length=6, description="密码")
+    role: str = Field("user", description="用户角色: user, student, mentor, admin")
+    full_name: Optional[str] = Field(None, max_length=100, description="真实姓名")
+    avatar_url: Optional[str] = Field(None, description="头像URL")
+    phone: Optional[str] = Field(None, max_length=20, description="电话号码")
+    is_active: bool = Field(True, description="账户是否激活")
 
 
 class UserUpdate(BaseModel):

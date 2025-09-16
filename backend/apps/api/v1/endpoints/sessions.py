@@ -80,7 +80,7 @@ async def get_my_sessions(
 ):
     """获取我的会话"""
     try:
-        sessions = await session.get_by_user(db_conn, int(current_user.id), limit)
+        sessions = await session.get_by_user(db_conn, current_user.id, limit)
         return sessions
     except Exception as e:
         raise HTTPException(
@@ -302,7 +302,7 @@ async def get_upcoming_sessions(
     """获取即将到来的会话"""
     try:
         # 简化实现：获取所有用户会话（实际应该根据时间筛选即将到来的会话）
-        sessions = await session.get_by_user(db_conn, int(current_user.id), limit)
+        sessions = await session.get_by_user(db_conn, current_user.id, limit)
         return sessions
     except Exception as e:
         raise HTTPException(
@@ -330,7 +330,7 @@ async def get_session_statistics(
             )
             
         # 简化实现：返回基础统计信息
-        sessions = await session.get_by_user(db_conn, int(current_user.id), 1000)  # 获取所有会话进行统计
+        sessions = await session.get_by_user(db_conn, current_user.id, 1000)  # 获取所有会话进行统计
         
         total_sessions = len(sessions)
         completed_sessions = len([s for s in sessions if s.get('status') == 'completed'])

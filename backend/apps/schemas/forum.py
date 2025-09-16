@@ -19,9 +19,12 @@ class ForumPostBase(BaseModel):
     tags: List[str] = Field(default_factory=list, description="标签列表")
 
 
-class ForumPostCreate(ForumPostBase):
+class ForumPostCreate(BaseModel):
     """论坛帖子创建模型"""
-    pass
+    title: str = Field(..., min_length=1, max_length=200, description="帖子标题")
+    content: str = Field(..., min_length=1, description="帖子内容")
+    category: str = Field(..., max_length=50, description="帖子分类")
+    tags: List[str] = Field(default_factory=list, description="标签列表")
 
 
 class ForumPostUpdate(BaseModel):
@@ -40,6 +43,12 @@ class ForumPost(IDModel, TimestampModel, ForumPostBase):
         from_attributes = True
 
 
+class ForumPostWithCounts(ForumPost):
+    """包含统计信息的论坛帖子模型"""
+    like_count: int = Field(0, description="点赞数量")
+    comment_count: int = Field(0, description="评论数量")
+
+
 # ============ 帖子回复 (PostReply) ============
 class PostReplyBase(BaseModel):
     """帖子回复基础模型"""
@@ -49,9 +58,10 @@ class PostReplyBase(BaseModel):
     parent_reply_id: Optional[UUID] = Field(None, description="父回复ID，用于嵌套回复")
 
 
-class PostReplyCreate(PostReplyBase):
+class PostReplyCreate(BaseModel):
     """帖子回复创建模型"""
-    pass
+    content: str = Field(..., min_length=1, description="回复内容")
+    parent_reply_id: Optional[UUID] = Field(None, description="父回复ID，用于嵌套回复")
 
 
 class PostReplyUpdate(BaseModel):
@@ -63,6 +73,11 @@ class PostReply(IDModel, TimestampModel, PostReplyBase):
     """帖子回复完整模型"""
     class Config(IDModel.Config):
         from_attributes = True
+
+
+class PostReplyWithCounts(PostReply):
+    """包含统计信息的帖子回复模型"""
+    like_count: int = Field(0, description="点赞数量")
 
 
 # ============ 点赞 (Like) ============

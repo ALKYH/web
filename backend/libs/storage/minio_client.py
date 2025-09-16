@@ -218,7 +218,7 @@ class MinIOClient:
                 "content_type": stat.content_type,
                 "etag": stat.etag,
                 "last_modified": stat.last_modified.isoformat() if stat.last_modified else None,
-                "metadata": stat.metadata or {}
+                "metadata": dict(stat.metadata) if stat.metadata else {}
             }
 
             return info

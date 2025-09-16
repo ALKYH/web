@@ -175,7 +175,7 @@ async def get_wallet_transactions(
     """获取钱包交易记录"""
     offset = (page - 1) * page_size
     query = """
-        SELECT wt.id, wt.wallet_id, wt.amount, wt.transaction_type, wt.description, wt.created_at
+        SELECT wt.id, wt.wallet_id, wt.amount, wt.transaction_type, wt.balance_after, wt.created_at, wt.updated_at
         FROM wallet_transactions wt
         JOIN user_wallets uw ON wt.wallet_id = uw.id
         WHERE uw.user_id = $1

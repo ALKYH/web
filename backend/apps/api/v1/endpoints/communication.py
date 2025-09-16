@@ -118,7 +118,7 @@ async def update_conversation(
     - **description**: 新描述（可选）
     """
     conversation = await communication_service.update_conversation(
-        db, conversation_id, conversation_data, current_user.id
+        db, conversation_id, current_user.id, conversation_data
     )
     if not conversation:
         raise HTTPException(status_code=404, detail="对话不存在")
@@ -261,7 +261,7 @@ async def list_conversation_messages(
 )
 async def send_message(
     conversation_id: UUID,
-    message_data: MessageCreate,
+    message_data: dict,  # 使用dict避免Pydantic验证问题
     db: DatabaseAdapter = Depends(get_database),
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
@@ -271,9 +271,18 @@ async def send_message(
     - **conversation_id**: 对话ID
     - **content**: 消息内容
     """
-    message = await communication_service.send_message(
-        db, conversation_id, message_data, current_user.id
+    # 创建MessageCreate对象，conversation_id从路径参数获取
+    from apps.schemas.communication import MessageCreate
+    create_data = MessageCreate(
+        conversation_id=conversation_id,
+        content=message_data.get("content", "")
     )
+
+    message = await communication_service.send_message(
+        db, conversation_id, create_data, current_user.id
+    )
+    if not message:
+        raise HTTPException(status_code=403, detail="发送消息失败，可能不是对话参与者")
     return GeneralResponse(data=message)
 
 
@@ -285,7 +294,7 @@ async def send_message(
 )
 async def update_message(
     message_id: UUID,
-    message_data: MessageUpdate,
+    update_data: MessageUpdate,  # 改名为 update_data 避免与路径参数冲突
     db: DatabaseAdapter = Depends(get_database),
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
@@ -297,7 +306,7 @@ async def update_message(
     - **is_read**: 阅读状态（可选）
     """
     message = await communication_service.update_message(
-        db, message_id, message_data, current_user.id
+        db, message_id, current_user.id, update_data
     )
     if not message:
         raise HTTPException(status_code=404, detail="消息不存在")
@@ -326,3 +335,71 @@ async def delete_message(
     if not success:
         raise HTTPException(status_code=404, detail="消息不存在")
     return GeneralResponse(data={"message": "消息删除成功"})
+
+
+# ============ 用户消息入口（合并自 messages.py） ============
+
+@router.get(
+    "/messages",
+    response_model=GeneralResponse[List[Message]],
+    summary="获取消息列表",
+    description="获取当前用户的所有消息。支持分页。"
+)
+async def list_messages(
+    limit: int = Query(20, ge=1, le=100, description="返回数量"),
+    offset: int = Query(0, ge=0, description="偏移量"),
+    db: DatabaseAdapter = Depends(get_database),
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    获取用户的消息列表
+
+    - **limit**: 返回数量（1-100）
+    - **offset**: 偏移量
+    """
+    messages = await communication_service.get_messages(db, current_user.id, limit, offset)
+    return GeneralResponse(data=messages)
+
+
+@router.get(
+    "/messages/{message_id}",
+    response_model=GeneralResponse[Message],
+    summary="获取消息详情",
+    description="获取指定消息的详细信息"
+)
+async def get_message_detail(
+    message_id: UUID,
+    db: DatabaseAdapter = Depends(get_database),
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    获取消息详情
+
+    - **message_id**: 消息ID
+    """
+    message = await communication_service.get_message_detail(db, message_id, current_user.id)
+    if not message:
+        raise HTTPException(status_code=404, detail="消息不存在")
+    return GeneralResponse(data=message)
+
+
+@router.put(
+    "/messages/{message_id}/read",
+    response_model=GeneralResponse[dict],
+    summary="标记消息为已读",
+    description="将指定消息标记为已读"
+)
+async def mark_message_as_read(
+    message_id: UUID,
+    db: DatabaseAdapter = Depends(get_database),
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    标记消息为已读
+
+    - **message_id**: 消息ID
+    """
+    success = await communication_service.mark_message_as_read(db, message_id, current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="消息不存在")
+    return GeneralResponse(data={"message": "消息已标记为已读", "message_id": message_id})

@@ -27,7 +27,7 @@ router = APIRouter()
 # ============ 服务管理 ============
 
 @router.get(
-    "/services",
+    "",
     response_model=GeneralResponse[List[Service]],
     summary="浏览指导服务",
     description="浏览平台上的所有可用指导服务"
@@ -53,7 +53,7 @@ async def list_services(
 
 
 @router.post(
-    "/services",
+    "",
     response_model=GeneralResponse[Service],
     summary="发布指导服务",
     description="导师发布新的指导服务"
@@ -78,7 +78,7 @@ async def create_service(
 
 
 @router.get(
-    "/services/{service_id}",
+    "/{service_id}",
     response_model=GeneralResponse[Service],
     summary="获取服务详情",
     description="获取指定服务的详细信息"
@@ -101,7 +101,7 @@ async def get_service(
 
 
 @router.put(
-    "/services/{service_id}",
+    "/{service_id}",
     response_model=GeneralResponse[Service],
     summary="更新服务信息",
     description="导师更新自己的服务信息"
@@ -128,7 +128,7 @@ async def update_service(
 
 
 @router.delete(
-    "/services/{service_id}",
+    "/{service_id}",
     response_model=GeneralResponse[dict],
     summary="删除服务",
     description="导师删除自己的服务"
@@ -153,7 +153,7 @@ async def delete_service(
 
 
 @router.get(
-    "/my/services",
+    "/my",
     response_model=GeneralResponse[List[Service]],
     summary="获取我的服务",
     description="获取当前用户发布的所有服务"

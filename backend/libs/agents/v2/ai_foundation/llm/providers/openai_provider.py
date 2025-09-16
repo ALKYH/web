@@ -24,8 +24,13 @@ class OpenAIProvider(BaseLLMProvider):
         """设置 OpenAI 客户端"""
         try:
             from openai import AsyncOpenAI
-            self.client = AsyncOpenAI(api_key=self.api_key)
-            logger.info("OpenAI client initialized successfully")
+            # 设置更长的超时时间以避免网络问题
+            self.client = AsyncOpenAI(
+                api_key=self.api_key,
+                timeout=120.0,  # 120秒超时
+                max_retries=3   # 最大重试次数
+            )
+            logger.info("OpenAI client initialized successfully with 120s timeout")
         except ImportError:
             logger.warning("OpenAI package not installed, using mock responses")
             self.client = None

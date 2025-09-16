@@ -48,7 +48,7 @@ async def get_current_user(
         raise HTTPException(status_code=400, detail="账户已被禁用")
 
     return AuthenticatedUser(
-        id=UUID(user['id']),
+        id=UUID(str(user['id'])),
         username=user['username'],
         role=user.get('role', 'user')
     )

@@ -95,7 +95,7 @@ async def get_post(
 
     - **post_id**: 帖子ID
     """
-    post = await forum_service.get_post_detail(db, post_id)
+    post = await forum_service.get_post_by_id(db, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="帖子不存在")
     return GeneralResponse(data=post)

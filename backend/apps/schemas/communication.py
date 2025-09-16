@@ -14,19 +14,23 @@ from .common import IDModel, TimestampModel
 class ConversationBase(BaseModel):
     """会话基础模型"""
 
-    pass  # Currently, conversations are just containers for messages
+    title: Optional[str] = Field(None, description="对话标题")
+    description: Optional[str] = Field(None, description="对话描述")
+    conversation_type: str = Field("private", description="对话类型")
 
 
 class ConversationCreate(ConversationBase):
     """会话创建模型"""
 
-    participant_ids: List[UUID] = Field(..., min_length=2, description="参与者User ID列表")
+    participant_ids: List[UUID] = Field(default_factory=list, description="参与者User ID列表")
 
 
 class ConversationUpdate(BaseModel):
     """会话更新模型"""
 
-    pass  # 会话通常不需要更新，主要是通过消息来更新
+    title: Optional[str] = Field(None, description="新对话标题")
+    description: Optional[str] = Field(None, description="新对话描述")
+    conversation_type: Optional[str] = Field(None, description="新对话类型")
 
 
 class Conversation(IDModel, TimestampModel, ConversationBase):
@@ -68,10 +72,11 @@ class MessageBase(BaseModel):
     content: str = Field(..., description="消息内容")
 
 
-class MessageCreate(MessageBase):
+class MessageCreate(BaseModel):
     """消息创建模型"""
 
-    pass
+    conversation_id: UUID = Field(..., description="所属会话ID")
+    content: str = Field(..., description="消息内容")
 
 
 class MessageUpdate(BaseModel):
@@ -88,6 +93,8 @@ class Message(IDModel, TimestampModel, MessageBase):
 
     class Config(IDModel.Config):
         from_attributes = True
+        # 对于API响应，使用snake_case而不是camelCase
+        alias_generator = None
 
 
 # ============ 会话列表项 (ConversationListItem) ============

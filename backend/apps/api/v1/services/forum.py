@@ -18,15 +18,31 @@ from libs.database.adapters import DatabaseAdapter
 async def get_posts(
     db: DatabaseAdapter,
     category: Optional[str] = None,
-    search_query: Optional[str] = None,
-    page: int = 1,
-    page_size: int = 20
-) -> List[Post]:
+    tag: Optional[str] = None,
+    author_id: Optional[UUID] = None,
+    limit: int = 20,
+    offset: int = 0
+):
     """获取帖子列表"""
-    return await forum_repo.get_posts(
+    from apps.schemas.forum import ForumPostListResponse
+
+    posts = await forum_repo.get_posts(
         db=db,
         category=category,
-        search_query=search_query,
+        tag=tag,
+        author_id=author_id,
+        limit=limit,
+        offset=offset
+    )
+
+    # 计算分页信息
+    total = await forum_repo.count_posts(db, category, tag, author_id)
+    page = (offset // limit) + 1
+    page_size = len(posts)
+
+    return ForumPostListResponse(
+        posts=posts,
+        total=total,
         page=page,
         page_size=page_size
     )
@@ -49,11 +65,11 @@ async def create_post(
 async def update_post(
     db: DatabaseAdapter,
     post_id: UUID,
-    author_id: UUID,
-    post_data: PostUpdate
+    post_data: PostUpdate,
+    author_id: UUID
 ) -> Optional[Post]:
     """更新帖子"""
-    return await forum_repo.update_post(db, post_id, author_id, post_data)
+    return await forum_repo.update_post(db, post_id, post_data, author_id)
 
 
 async def delete_post(db: DatabaseAdapter, post_id: UUID, author_id: UUID) -> bool:
@@ -68,51 +84,87 @@ async def get_posts_by_author(db: DatabaseAdapter, author_id: UUID) -> List[Post
 
 # ============ 评论服务 ============
 
-async def get_comments_by_post(
+async def get_post_replies(
     db: DatabaseAdapter,
     post_id: UUID,
-    page: int = 1,
-    page_size: int = 50
-) -> List[Comment]:
-    """获取帖子的评论列表"""
-    return await forum_repo.get_comments_by_post(
-        db, post_id, page, page_size
+    limit: int = 20,
+    offset: int = 0
+):
+    """获取帖子的回复列表"""
+    from apps.schemas.forum import ForumReplyListResponse
+
+    replies = await forum_repo.get_post_replies(
+        db, post_id, limit, offset
+    )
+
+    # 计算分页信息
+    total = await forum_repo.count_post_replies(db, post_id)
+    page = (offset // limit) + 1
+    page_size = len(replies)
+
+    return ForumReplyListResponse(
+        replies=replies,
+        total=total,
+        page=page,
+        page_size=page_size
     )
 
 
-async def create_comment(
+async def create_reply(
     db: DatabaseAdapter,
     post_id: UUID,
-    comment_data: CommentCreate,
+    reply_data: CommentCreate,
     author_id: UUID
 ) -> Optional[Comment]:
-    """创建评论"""
-    return await forum_repo.create_comment(
-        db, post_id, comment_data, author_id
+    """创建回复"""
+    return await forum_repo.create_reply(
+        db, post_id, reply_data, author_id
     )
 
 
-async def update_comment(
+async def update_reply(
     db: DatabaseAdapter,
-    comment_id: UUID,
-    author_id: UUID,
-    comment_data: CommentUpdate
+    reply_id: UUID,
+    reply_data: CommentUpdate,
+    author_id: UUID
 ) -> Optional[Comment]:
-    """更新评论"""
-    return await forum_repo.update_comment(
-        db, comment_id, author_id, comment_data
+    """更新回复"""
+    return await forum_repo.update_reply(
+        db, reply_id, reply_data, author_id
     )
 
 
-async def delete_comment(
+async def delete_reply(
     db: DatabaseAdapter,
-    comment_id: UUID,
+    reply_id: UUID,
     author_id: UUID
 ) -> bool:
-    """删除评论"""
-    return await forum_repo.delete_comment(db, comment_id, author_id)
+    """删除回复"""
+    return await forum_repo.delete_reply(db, reply_id, author_id)
 
 
 async def get_comments_by_author(db: DatabaseAdapter, author_id: UUID) -> List[Comment]:
     """获取作者的评论列表"""
     return await forum_repo.get_comments_by_author(db, author_id)
+
+
+# ============ 点赞服务 ============
+
+async def like_post(db: DatabaseAdapter, post_id: UUID, user_id: UUID):
+    """点赞帖子"""
+    return await forum_repo.like_post(db, post_id, user_id)
+
+
+async def unlike_post(db: DatabaseAdapter, post_id: UUID, user_id: UUID) -> bool:
+    """取消点赞帖子"""
+    return await forum_repo.unlike_post(db, post_id, user_id)
+
+
+async def like_reply(db: DatabaseAdapter, reply_id: UUID, user_id: UUID):
+    """点赞回复"""
+    return await forum_repo.like_reply(db, reply_id, user_id)
+
+
+async def unlike_reply(db: DatabaseAdapter, reply_id: UUID, user_id: UUID) -> bool:
+    """取消点赞回复"""
+    return await forum_repo.unlike_reply(db, reply_id, user_id)

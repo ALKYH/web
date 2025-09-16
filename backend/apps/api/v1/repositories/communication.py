@@ -9,7 +9,7 @@ from uuid import UUID
 from apps.schemas.communication import (
     Conversation, ConversationCreate, ConversationUpdate,
     ConversationParticipant, ConversationParticipantCreate,
-    Message, MessageCreate, MessageUpdate
+    Message, MessageCreate, MessageUpdate, ConversationListItem
 )
 from apps.schemas.message import MessageCreate as LegacyMessageCreate, MessageUpdate as LegacyMessageUpdate
 from libs.database.adapters import DatabaseAdapter
@@ -20,10 +20,10 @@ from libs.database.adapters import DatabaseAdapter
 async def get_conversations_by_user(db: DatabaseAdapter, user_id: UUID) -> List[Conversation]:
     """获取用户参与的对话列表"""
     query = """
-        SELECT c.id, c.title, c.description, c.conversation_type, c.created_at, c.updated_at
+        SELECT c.id, c.title, c.description, c.conversation_type, c.last_message_id, c.created_at, c.updated_at
         FROM conversations c
         JOIN conversation_participants cp ON c.id = cp.conversation_id
-        WHERE cp.user_id = $1 AND cp.is_active = true
+        WHERE cp.user_id = $1
         ORDER BY c.updated_at DESC
     """
     rows = await db.fetch_all(query, user_id)
@@ -33,10 +33,10 @@ async def get_conversations_by_user(db: DatabaseAdapter, user_id: UUID) -> List[
 async def get_conversation_by_id(db: DatabaseAdapter, conversation_id: UUID, user_id: UUID) -> Optional[Conversation]:
     """获取对话详情"""
     query = """
-        SELECT c.id, c.title, c.description, c.conversation_type, c.created_at, c.updated_at
+        SELECT c.id, c.title, c.description, c.conversation_type, c.last_message_id, c.created_at, c.updated_at
         FROM conversations c
         JOIN conversation_participants cp ON c.id = cp.conversation_id
-        WHERE c.id = $1 AND cp.user_id = $2 AND cp.is_active = true
+        WHERE c.id = $1 AND cp.user_id = $2
     """
     row = await db.fetch_one(query, conversation_id, user_id)
     return Conversation(**row) if row else None
@@ -44,28 +44,58 @@ async def get_conversation_by_id(db: DatabaseAdapter, conversation_id: UUID, use
 
 async def create_conversation(db: DatabaseAdapter, conversation_data: ConversationCreate, creator_id: UUID) -> Optional[Conversation]:
     """创建对话"""
-    query = """
-        INSERT INTO conversations (title, description, conversation_type)
-        VALUES ($1, $2, $3)
-        RETURNING id, title, description, conversation_type, created_at, updated_at
+    # 构建插入语句，支持可选字段
+    columns = ["id"]
+    values = ["uuid_generate_v7()"]
+    params = []
+
+    # 如果提供了标题
+    if hasattr(conversation_data, 'title') and conversation_data.title:
+        columns.append("title")
+        values.append("$1")
+        params.append(conversation_data.title)
+
+    # 如果提供了描述
+    if hasattr(conversation_data, 'description') and conversation_data.description:
+        columns.append("description")
+        values.append(f"${len(params) + 1}")
+        params.append(conversation_data.description)
+
+    # 如果提供了对话类型
+    if hasattr(conversation_data, 'conversation_type') and conversation_data.conversation_type:
+        columns.append("conversation_type")
+        values.append(f"${len(params) + 1}")
+        params.append(conversation_data.conversation_type)
+
+    query = f"""
+        INSERT INTO conversations ({', '.join(columns)})
+        VALUES ({', '.join(values)})
+        RETURNING id, title, description, conversation_type, last_message_id, created_at, updated_at
     """
-    values = (
-        conversation_data.title,
-        conversation_data.description,
-        conversation_data.conversation_type.value if hasattr(conversation_data.conversation_type, 'value') else conversation_data.conversation_type
-    )
-    row = await db.fetch_one(query, *values)
+
+    row = await db.fetch_one(query, *params)
     if not row:
         return None
 
+    # 创建Conversation对象
     conversation = Conversation(**row)
 
     # 添加创建者为参与者
     await add_conversation_participant(
         db,
         conversation.id,
-        ConversationParticipantCreate(user_id=creator_id, role="admin")
+        ConversationParticipantCreate(conversation_id=conversation.id, user_id=creator_id)
     )
+
+    # 添加其他参与者
+    if hasattr(conversation_data, 'participant_ids') and conversation_data.participant_ids:
+        for participant_id in conversation_data.participant_ids:
+            if participant_id != creator_id:  # 避免重复添加创建者
+                await add_conversation_participant(
+                    db,
+                    conversation.id,
+                    ConversationParticipantCreate(conversation_id=conversation.id, user_id=participant_id)
+                )
 
     return conversation
 
@@ -79,35 +109,41 @@ async def update_conversation(db: DatabaseAdapter, conversation_id: UUID, user_i
     # 构建动态更新语句
     set_parts = []
     values = []
-    param_index = 1
 
-    if conversation_data.title is not None:
-        set_parts.append(f"title = ${param_index}")
+    # 现在数据库中有title字段了
+    if hasattr(conversation_data, 'title') and conversation_data.title is not None:
+        set_parts.append("title = $1")
         values.append(conversation_data.title)
-        param_index += 1
 
-    if conversation_data.description is not None:
-        set_parts.append(f"description = ${param_index}")
+    if hasattr(conversation_data, 'description') and conversation_data.description is not None:
+        param_num = len(values) + 1
+        set_parts.append(f"description = ${param_num}")
         values.append(conversation_data.description)
-        param_index += 1
 
-    if conversation_data.conversation_type is not None:
-        set_parts.append(f"conversation_type = ${param_index}")
-        values.append(conversation_data.conversation_type.value if hasattr(conversation_data.conversation_type, 'value') else conversation_data.conversation_type)
-        param_index += 1
+    if hasattr(conversation_data, 'conversation_type') and conversation_data.conversation_type is not None:
+        param_num = len(values) + 1
+        set_parts.append(f"conversation_type = ${param_num}")
+        values.append(conversation_data.conversation_type)
 
+    # 如果没有要更新的字段，只更新时间戳
     if not set_parts:
-        return await get_conversation_by_id(db, conversation_id, user_id)
-
-    set_parts.append("updated_at = NOW()")
-
-    query = f"""
-        UPDATE conversations
-        SET {', '.join(set_parts)}
-        WHERE id = ${param_index}
-        RETURNING id, title, description, conversation_type, created_at, updated_at
-    """
-    values.append(conversation_id)
+        query = """
+            UPDATE conversations
+            SET updated_at = NOW()
+            WHERE id = $1
+            RETURNING id, title, description, conversation_type, last_message_id, created_at, updated_at
+        """
+        values = [conversation_id]
+    else:
+        set_parts.append("updated_at = NOW()")
+        param_num = len(values) + 1
+        query = f"""
+            UPDATE conversations
+            SET {', '.join(set_parts)}
+            WHERE id = ${param_num}
+            RETURNING id, title, description, conversation_type, last_message_id, created_at, updated_at
+        """
+        values.append(conversation_id)
 
     row = await db.fetch_one(query, *values)
     return Conversation(**row) if row else None
@@ -115,21 +151,17 @@ async def update_conversation(db: DatabaseAdapter, conversation_id: UUID, user_i
 
 async def delete_conversation(db: DatabaseAdapter, conversation_id: UUID, user_id: UUID) -> bool:
     """删除对话"""
-    # 验证用户是否为对话参与者且为管理员
-    participant_query = """
-        SELECT role FROM conversation_participants
-        WHERE conversation_id = $1 AND user_id = $2 AND is_active = true
-    """
-    participant = await db.fetch_one(participant_query, conversation_id, user_id)
-    if not participant or participant['role'] != 'admin':
+    # 验证用户是否为对话参与者
+    if not await is_conversation_participant(db, conversation_id, user_id):
         return False
 
-    # 软删除对话 - 将所有参与者标记为非活跃
-    await db.execute("""
-        UPDATE conversation_participants
-        SET is_active = false, left_at = NOW()
-        WHERE conversation_id = $1
-    """, conversation_id)
+    # 硬删除对话 - 删除对话记录
+    query = """
+        DELETE FROM conversations
+        WHERE id = $1
+    """
+    result = await db.execute(query, conversation_id)
+    return result == "DELETE 1"
 
     return True
 
@@ -144,7 +176,7 @@ async def get_messages_by_conversation(db: DatabaseAdapter, conversation_id: UUI
 
     offset = (page - 1) * page_size
     query = """
-        SELECT id, conversation_id, sender_id, content, message_type, is_edited, created_at, updated_at
+        SELECT id, conversation_id, sender_id, content, is_read, created_at, updated_at
         FROM messages
         WHERE conversation_id = $1
         ORDER BY created_at DESC
@@ -157,10 +189,10 @@ async def get_messages_by_conversation(db: DatabaseAdapter, conversation_id: UUI
 async def get_message_by_id(db: DatabaseAdapter, message_id: UUID, user_id: UUID) -> Optional[Message]:
     """根据ID获取消息"""
     query = """
-        SELECT m.id, m.conversation_id, m.sender_id, m.content, m.message_type, m.is_edited, m.created_at, m.updated_at
+        SELECT m.id, m.conversation_id, m.sender_id, m.content, m.is_read, m.created_at, m.updated_at
         FROM messages m
         JOIN conversation_participants cp ON m.conversation_id = cp.conversation_id
-        WHERE m.id = $1 AND cp.user_id = $2 AND cp.is_active = true
+        WHERE m.id = $1 AND cp.user_id = $2
     """
     row = await db.fetch_one(query, message_id, user_id)
     return Message(**row) if row else None
@@ -173,15 +205,14 @@ async def create_message(db: DatabaseAdapter, conversation_id: UUID, message_dat
         return None
 
     query = """
-        INSERT INTO messages (conversation_id, sender_id, content, message_type)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, conversation_id, sender_id, content, message_type, is_edited, created_at, updated_at
+        INSERT INTO messages (conversation_id, sender_id, content)
+        VALUES ($1, $2, $3)
+        RETURNING id, conversation_id, sender_id, content, is_read, created_at, updated_at
     """
     values = (
         conversation_id,
         sender_id,
-        message_data.content,
-        message_data.message_type.value if hasattr(message_data.message_type, 'value') else message_data.message_type
+        message_data.content
     )
     row = await db.fetch_one(query, *values)
     if row:
@@ -191,15 +222,15 @@ async def create_message(db: DatabaseAdapter, conversation_id: UUID, message_dat
     return None
 
 
-async def update_message(db: DatabaseAdapter, message_id: UUID, sender_id: UUID, message_data: MessageUpdate) -> Optional[Message]:
+async def update_message(db: DatabaseAdapter, message_id: UUID, sender_id: UUID, update_data: MessageUpdate) -> Optional[Message]:
     """更新消息"""
     query = """
         UPDATE messages
-        SET content = $1, is_edited = true, updated_at = NOW()
+        SET content = $1, updated_at = NOW()
         WHERE id = $2 AND sender_id = $3
-        RETURNING id, conversation_id, sender_id, content, message_type, is_edited, created_at, updated_at
+        RETURNING id, conversation_id, sender_id, content, is_read, created_at, updated_at
     """
-    row = await db.fetch_one(query, message_data.content, message_id, sender_id)
+    row = await db.fetch_one(query, update_data.content, message_id, sender_id)
     return Message(**row) if row else None
 
 
@@ -219,7 +250,7 @@ async def is_conversation_participant(db: DatabaseAdapter, conversation_id: UUID
     """检查用户是否为对话参与者"""
     query = """
         SELECT 1 FROM conversation_participants
-        WHERE conversation_id = $1 AND user_id = $2 AND is_active = true
+        WHERE conversation_id = $1 AND user_id = $2
     """
     row = await db.fetch_one(query, conversation_id, user_id)
     return row is not None
@@ -228,61 +259,54 @@ async def is_conversation_participant(db: DatabaseAdapter, conversation_id: UUID
 async def add_conversation_participant(db: DatabaseAdapter, conversation_id: UUID, participant_data: ConversationParticipantCreate) -> Optional[ConversationParticipant]:
     """添加对话参与者"""
     query = """
-        INSERT INTO conversation_participants (conversation_id, user_id, role, is_active)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, conversation_id, user_id, role, joined_at, is_active
+        INSERT INTO conversation_participants (conversation_id, user_id)
+        VALUES ($1, $2)
+        RETURNING id, conversation_id, user_id, created_at, updated_at
     """
     values = (
         conversation_id,
-        participant_data.user_id,
-        participant_data.role.value if hasattr(participant_data.role, 'value') else participant_data.role,
-        True
+        participant_data.user_id
     )
     row = await db.fetch_one(query, *values)
-    return ConversationParticipant(**row) if row else None
+    if not row:
+        return None
+
+    # 创建ConversationParticipant对象
+    return ConversationParticipant(
+        id=row['id'],
+        conversation_id=row['conversation_id'],
+        user_id=row['user_id'],
+        created_at=row['created_at'],
+        updated_at=row['updated_at']
+    )
 
 
 async def remove_conversation_participant(db: DatabaseAdapter, conversation_id: UUID, user_id: UUID) -> bool:
     """移除对话参与者"""
     query = """
-        UPDATE conversation_participants
-        SET is_active = false, left_at = NOW()
-        WHERE conversation_id = $1 AND user_id = $2 AND is_active = true
+        DELETE FROM conversation_participants
+        WHERE conversation_id = $1 AND user_id = $2
     """
     result = await db.execute(query, conversation_id, user_id)
-    return result == "UPDATE 1"
+    return result == "DELETE 1"
 
 
 async def get_conversation_participants(db: DatabaseAdapter, conversation_id: UUID) -> List[ConversationParticipant]:
     """获取对话参与者列表"""
     query = """
-        SELECT id, conversation_id, user_id, role, joined_at, left_at, is_active
+        SELECT id, conversation_id, user_id, created_at, updated_at
         FROM conversation_participants
-        WHERE conversation_id = $1 AND is_active = true
-        ORDER BY joined_at
+        WHERE conversation_id = $1
+        ORDER BY created_at
     """
     rows = await db.fetch_all(query, conversation_id)
     return [ConversationParticipant(**row) for row in rows]
 
 
 async def update_participant_role(db: DatabaseAdapter, conversation_id: UUID, user_id: UUID, new_role: str, requester_id: UUID) -> bool:
-    """更新参与者角色（需要管理员权限）"""
-    # 验证请求者是否为管理员
-    requester_query = """
-        SELECT role FROM conversation_participants
-        WHERE conversation_id = $1 AND user_id = $2 AND is_active = true
-    """
-    requester = await db.fetch_one(requester_query, conversation_id, requester_id)
-    if not requester or requester['role'] != 'admin':
-        return False
-
-    query = """
-        UPDATE conversation_participants
-        SET role = $1, updated_at = NOW()
-        WHERE conversation_id = $2 AND user_id = $3 AND is_active = true
-    """
-    result = await db.execute(query, new_role, conversation_id, user_id)
-    return result == "UPDATE 1"
+    """更新参与者角色（简化实现，当前不支持角色管理）"""
+    # 当前数据库schema不支持角色管理，总是返回False
+    return False
 
 
 # ============ 辅助函数 ============
@@ -337,38 +361,74 @@ async def create(db: DatabaseAdapter, message_in: LegacyMessageCreate) -> Option
     return await db.fetch_one(query, *create_data.values())
 
 
-async def mark_as_read(db: DatabaseAdapter, message_id: int, user_id: int) -> bool:
-    """标记消息为已读（兼容旧接口）"""
-    query = f"""
-        UPDATE messages
-        SET is_read = true, read_at = NOW()
-        WHERE id = $1 AND recipient_id = $2
+async def mark_as_read(db: DatabaseAdapter, message_id: UUID, user_id: UUID) -> bool:
+    """标记消息为已读"""
+    # 验证用户是否能访问这条消息（是否为对话参与者）
+    message_query = """
+        SELECT conversation_id FROM messages WHERE id = $1
     """
-    result = await db.execute(query, message_id, user_id)
-    return "UPDATE 1" in result
+    message_row = await db.fetch_one(message_query, message_id)
+    if not message_row:
+        return False
+
+    # 验证用户是否为对话参与者
+    if not await is_conversation_participant(db, message_row['conversation_id'], user_id):
+        return False
+
+    # 标记消息为已读
+    query = """
+        UPDATE messages
+        SET is_read = true, updated_at = NOW()
+        WHERE id = $1
+    """
+    result = await db.execute(query, message_id)
+    return result == "UPDATE 1"
 
 
-async def get_messages_by_user(db: DatabaseAdapter, user_id: int, limit: int = 20, offset: int = 0) -> List[dict]:
-    """获取用户的消息列表（兼容旧接口）"""
-    query = f"""
-        SELECT * FROM messages
-        WHERE sender_id = $1 OR recipient_id = $1
-        ORDER BY created_at DESC
+async def get_messages_by_user(db: DatabaseAdapter, user_id: UUID, limit: int = 20, offset: int = 0) -> List[Message]:
+    """获取用户的消息列表"""
+    query = """
+        SELECT m.id, m.conversation_id, m.sender_id, m.content, m.is_read, m.created_at, m.updated_at
+        FROM messages m
+        JOIN conversation_participants cp ON m.conversation_id = cp.conversation_id
+        WHERE cp.user_id = $1
+        ORDER BY m.created_at DESC
         LIMIT $2 OFFSET $3
     """
-    return await db.fetch_many(query, user_id, limit, offset)
+    rows = await db.fetch_all(query, user_id, limit, offset)
+    return [Message(**row) for row in rows]
 
 
-async def get_conversations_by_user_legacy(db: DatabaseAdapter, user_id: int, limit: int = 20) -> List[dict]:
-    """获取用户的对话列表（兼容旧接口）"""
-    query = f"""
-        SELECT DISTINCT conversation_id,
-               MAX(created_at) as last_message_time,
-               COUNT(*) as message_count
-        FROM messages
-        WHERE sender_id = $1 OR recipient_id = $1
-        GROUP BY conversation_id
-        ORDER BY last_message_time DESC
+async def get_conversations_by_user_legacy(db: DatabaseAdapter, user_id: UUID, limit: int = 20) -> List[ConversationListItem]:
+    """获取用户的对话列表"""
+    query = """
+        SELECT
+            c.id as conversation_id,
+            m.content as last_message,
+            m.created_at as last_message_time,
+            0 as unread_count,
+            c.created_at as created_at
+        FROM conversations c
+        JOIN conversation_participants cp ON c.id = cp.conversation_id
+        LEFT JOIN messages m ON c.id = m.conversation_id
+            AND m.created_at = (
+                SELECT MAX(created_at) FROM messages
+                WHERE conversation_id = c.id
+            )
+        WHERE cp.user_id = $1
+        GROUP BY c.id, m.content, m.created_at, c.created_at
+        ORDER BY COALESCE(m.created_at, c.created_at) DESC
         LIMIT $2
     """
-    return await db.fetch_many(query, user_id, limit)
+    rows = await db.fetch_all(query, user_id, limit)
+
+    # 转换数据格式以匹配ConversationListItem
+    result = []
+    for row in rows:
+        # 将数据库行转换为字典
+        data = dict(row)
+        # participants字段需要是List[dict]，这里暂时设为空列表
+        data['participants'] = []
+        result.append(ConversationListItem(**data))
+
+    return result

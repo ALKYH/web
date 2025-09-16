@@ -26,9 +26,9 @@ class RecommendationRequest(BaseModel):
 class MatchingRequest(BaseModel):
     """匹配请求"""
     user_id: UUID = Field(..., description="发起匹配的用户ID")
-    target_skills: List[UUID] = Field(..., description="目标技能ID列表")
-    # Omitting other fields for brevity as they are domain-specific
-    # and don't need refactoring with common models.
+    target_skills: List[UUID] = Field(default_factory=list, description="目标技能ID列表")
+    budget_range: Optional[Dict[str, float]] = Field(None, description="预算范围 {'min': 100, 'max': 500}")
+    requirements: Optional[str] = Field(None, description="具体需求描述")
 
 
 class MatchingResult(BaseModel):

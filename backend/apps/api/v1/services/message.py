@@ -73,16 +73,10 @@ async def get_conversations(
     conversations = await get_conversations_by_user(db, user_id)
 
     # 转换为ConversationListItem格式
-    conversation_items = []
-    for conv in conversations[:limit]:
-        item = ConversationListItem(
-            id=conv.id,
-            title=conv.title,
-            last_message_at=conv.updated_at,
-            participant_count=len(conv.participants) if conv.participants else 0,
-            unread_count=0  # TODO: 计算未读消息数量
-        )
-        conversation_items.append(item)
+    # 使用repository中的函数获取更详细的对话信息
+    from apps.api.v1.repositories.communication import get_conversations_by_user_legacy
+    conversation_items = await get_conversations_by_user_legacy(db, user_id, limit)
+    return conversation_items
 
     return conversation_items
 
