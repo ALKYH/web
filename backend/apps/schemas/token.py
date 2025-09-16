@@ -1,34 +1,23 @@
 """
-JWT Token 相关的数据模型
+JWT Token - 数据模型
 """
-from pydantic import BaseModel
 from typing import Optional
+from uuid import UUID
 
-
-class TokenPayload(BaseModel):
-    """JWT Token 载荷数据模型"""
-    sub: str  # subject (用户名)
-    role: Optional[str] = None
-    email: Optional[str] = None
-    exp: Optional[int] = None  # expiration time
-    iat: Optional[int] = None  # issued at time
+from pydantic import BaseModel, Field
 
 
 class AuthenticatedUser(BaseModel):
-    """经过认证的用户数据模型"""
-    id: str
-    username: str  # 添加用户名字段
-    role: Optional[str] = None
-    email: Optional[str] = None
+    """
+    认证后的用户信息模型，通常在请求上下文中传递
+    """
+    id: UUID = Field(..., description="用户ID")
+    username: str = Field(..., description="用户名")
+    role: Optional[str] = Field(None, description="用户角色")
 
 
 class Token(BaseModel):
-    """Token 响应数据模型"""
+    """Token API 响应模型"""
     access_token: str
     token_type: str = "bearer"
-    expires_in: Optional[int] = None  # 添加过期时间字段（秒数）
-
-
-class TokenData(BaseModel):
-    """Token 验证数据模型"""
-    username: Optional[str] = None
+    expires_in: int = Field(..., description="令牌过期时间（秒）")

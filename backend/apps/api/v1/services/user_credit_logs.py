@@ -3,6 +3,7 @@
 处理用户积分相关的业务逻辑
 """
 from typing import List, Optional, Dict, Any
+from uuid import UUID
 from fastapi import HTTPException, status
 
 from apps.schemas.user_credit_logs import CreditTransaction, CreditBalance, CreditStats
@@ -10,7 +11,7 @@ from apps.api.v1.repositories import user_credit_logs as credit_repo
 from libs.database.adapters import DatabaseAdapter
 
 
-async def get_user_credit_balance(db: DatabaseAdapter, user_id: int) -> CreditBalance:
+async def get_user_credit_balance(db: DatabaseAdapter, user_id: UUID) -> CreditBalance:
     """
     获取用户积分余额
     """
@@ -18,7 +19,7 @@ async def get_user_credit_balance(db: DatabaseAdapter, user_id: int) -> CreditBa
     return CreditBalance(**balance)
 
 
-async def get_user_credit_logs(db: DatabaseAdapter, user_id: int, credit_type: Optional[str] = None, skip: int = 0, limit: int = 50) -> List[Dict]:
+async def get_user_credit_logs(db: DatabaseAdapter, user_id: UUID, credit_type: Optional[str] = None, skip: int = 0, limit: int = 50) -> List[Dict]:
     """
     获取用户积分日志
     """
@@ -33,7 +34,7 @@ async def award_credits(db: DatabaseAdapter, transaction: CreditTransaction) -> 
     return result is not None
 
 
-async def get_credit_stats(db: DatabaseAdapter, user_id: Optional[int] = None) -> CreditStats:
+async def get_credit_stats(db: DatabaseAdapter, user_id: Optional[UUID] = None) -> CreditStats:
     """
     获取积分统计
     """

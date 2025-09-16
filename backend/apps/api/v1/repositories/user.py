@@ -1,141 +1,261 @@
 """
-用户相关的CRUD操作
-使用新的数据库适配器模式
+用户中心 - 仓库层
+提供用户和用户画像的数据库操作
 """
-from passlib.context import CryptContext
-from typing import Optional, Dict, Any
+from typing import Optional
+from uuid import UUID
 
-from apps.schemas.user import UserCreate, UserUpdate, ProfileUpdate
+from apps.schemas.user import User, UserCreate, UserUpdate, Profile, ProfileUpdate
 from libs.database.adapters import DatabaseAdapter
 
-# 密码哈希上下文
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """验证密码"""
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password: str) -> str:
-    """生成密码哈希"""
-    return pwd_context.hash(password)
-
-# --- 通用数据库操作函数(已重构) ---
-
-async def get_by_id(db: DatabaseAdapter, user_id: int) -> Optional[Dict]:
+async def get_user_by_id(db: DatabaseAdapter, user_id: UUID) -> Optional[User]:
     """根据ID获取用户"""
-    query = "SELECT id, username, email, password_hash, role, is_active, created_at FROM users WHERE id = $1"
-    return await db.fetch_one(query, user_id)
-
-async def get_by_username(db: DatabaseAdapter, username: str) -> Optional[Dict]:
-    """根据用户名获取用户"""
-    query = "SELECT id, username, email, password_hash, role, is_active, created_at FROM users WHERE username = $1"
-    return await db.fetch_one(query, username)
-
-async def get_by_email(db: DatabaseAdapter, email: str) -> Optional[Dict]:
-    """根据邮箱获取用户"""
-    query = "SELECT id, username, email, password_hash, role, is_active, created_at FROM users WHERE email = $1"
-    return await db.fetch_one(query, email)
-
-async def create(db: DatabaseAdapter, user: UserCreate) -> Optional[Dict]:
-    """创建新用户(纯数据操作)"""
-    # 哈希密码
-    hashed_password = get_password_hash(user.password)
-    
     query = """
-        INSERT INTO users (username, email, password_hash, role, is_active)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, username, email, role, is_active, created_at
+        SELECT id, username, email, password_hash, role, full_name, avatar_url, phone, is_active, created_at, updated_at
+        FROM users
+        WHERE id = $1
+    """
+    row = await db.fetch_one(query, user_id)
+    return User(**row) if row else None
+
+
+async def get_user_by_username(db: DatabaseAdapter, username: str) -> Optional[User]:
+    """根据用户名获取用户"""
+    query = """
+        SELECT id, username, email, password_hash, role, full_name, avatar_url, phone, is_active, created_at, updated_at
+        FROM users
+        WHERE username = $1
+    """
+    row = await db.fetch_one(query, username)
+    return User(**row) if row else None
+
+
+async def get_user_by_email(db: DatabaseAdapter, email: str) -> Optional[User]:
+    """根据邮箱获取用户"""
+    query = """
+        SELECT id, username, email, password_hash, role, full_name, avatar_url, phone, is_active, created_at, updated_at
+        FROM users
+        WHERE email = $1
+    """
+    row = await db.fetch_one(query, email)
+    return User(**row) if row else None
+
+
+async def create_user(db: DatabaseAdapter, user_data: UserCreate, hashed_password: str) -> Optional[User]:
+    """创建新用户"""
+    query = """
+        INSERT INTO users (username, email, password_hash, role, full_name, avatar_url, phone, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, username, email, password_hash, role, full_name, avatar_url, phone, is_active, created_at, updated_at
     """
     values = (
-        user.username, 
-        user.email, 
-        hashed_password, 
-        getattr(user, 'role', 'user'), 
-        True
+        user_data.username,
+        user_data.email,
+        hashed_password,
+        user_data.role,
+        user_data.full_name,
+        user_data.avatar_url,
+        user_data.phone,
+        user_data.is_active
     )
-    
-    try:
-        return await db.fetch_one(query, *values)
-    except Exception as e:
-        # 在仓库层，我们可以选择记录日志或重新抛出更具体的数据库异常
-        print(f"数据库创建用户失败: {e}")
-        # 最好是raise一个自定义的DBException
-        raise ValueError(f"数据库操作失败: {e}")
+    row = await db.fetch_one(query, *values)
+    return User(**row) if row else None
 
 
-async def authenticate(db: DatabaseAdapter, username: str, password: str) -> Optional[Dict]:
-    """验证用户登录"""
-    user = await get_by_username(db, username)
-    if not user:
-        return None
-    if not verify_password(password, user['password_hash']):
-        return None
-    if not user.get('is_active', True):
-        return None
-    return user
-
-async def update(db: DatabaseAdapter, user_id: int, user_update: UserUpdate) -> Optional[Dict]:
+async def update_user(db: DatabaseAdapter, user_id: UUID, user_data: UserUpdate) -> Optional[User]:
     """更新用户信息"""
-    update_data = user_update.model_dump(exclude_unset=True)
-    if not update_data:
-        return await get_by_id(db, user_id)
-    
-    # 如果要更新密码，需要哈希
-    if 'password' in update_data:
-        update_data['password_hash'] = get_password_hash(update_data.pop('password'))
-    
-    set_clause = ", ".join([f"{key} = ${i+2}" for i, key in enumerate(update_data.keys())])
+    # 构建动态更新语句
+    set_parts = []
+    values = []
+    param_index = 1
+
+    if user_data.username is not None:
+        set_parts.append(f"username = ${param_index}")
+        values.append(user_data.username)
+        param_index += 1
+
+    if user_data.email is not None:
+        set_parts.append(f"email = ${param_index}")
+        values.append(user_data.email)
+        param_index += 1
+
+    if user_data.role is not None:
+        set_parts.append(f"role = ${param_index}")
+        values.append(user_data.role)
+        param_index += 1
+
+    if user_data.full_name is not None:
+        set_parts.append(f"full_name = ${param_index}")
+        values.append(user_data.full_name)
+        param_index += 1
+
+    if user_data.avatar_url is not None:
+        set_parts.append(f"avatar_url = ${param_index}")
+        values.append(user_data.avatar_url)
+        param_index += 1
+
+    if user_data.phone is not None:
+        set_parts.append(f"phone = ${param_index}")
+        values.append(user_data.phone)
+        param_index += 1
+
+    if user_data.is_active is not None:
+        set_parts.append(f"is_active = ${param_index}")
+        values.append(user_data.is_active)
+        param_index += 1
+
+    if not set_parts:
+        return await get_user_by_id(db, user_id)
+
+    set_parts.append("updated_at = NOW()")
+
     query = f"""
-        UPDATE users SET {set_clause}, updated_at = NOW()
-        WHERE id = $1
-        RETURNING id, username, email, role, is_active, created_at
+        UPDATE users
+        SET {', '.join(set_parts)}
+        WHERE id = ${param_index}
+        RETURNING id, username, email, password_hash, role, full_name, avatar_url, phone, is_active, created_at, updated_at
     """
-    return await db.fetch_one(query, user_id, *update_data.values())
+    values.append(user_id)
 
-async def delete(db: DatabaseAdapter, user_id: int) -> bool:
-    """删除用户"""
-    query = "DELETE FROM users WHERE id = $1"
-    result = await db.execute(query, user_id)
-    return result == "DELETE 1"
+    row = await db.fetch_one(query, *values)
+    return User(**row) if row else None
 
-# --- Profile 相关操作 (已重构) ---
 
-async def get_profile(db: DatabaseAdapter, user_id: int) -> Optional[Dict]:
-    """获取用户资料"""
+async def get_user_profile(db: DatabaseAdapter, user_id: UUID) -> Optional[Profile]:
+    """获取用户画像"""
     query = """
-        SELECT
-            u.id, u.username, u.email, u.role, u.is_active, u.created_at,
-            p.id as profile_id, p.user_id, p.full_name, p.avatar_url, p.bio, p.phone, p.location, p.website, p.birth_date, p.created_at as profile_created_at, p.updated_at
-        FROM users u
-        LEFT JOIN profiles p ON u.id = p.user_id
-        WHERE u.id = $1
+        SELECT id, user_id, bio, location, website, birth_date,
+               urgency_level, budget_min, budget_max, learning_goals,
+               title, expertise, experience_years, hourly_rate,
+               created_at, updated_at
+        FROM profiles
+        WHERE user_id = $1
     """
-    return await db.fetch_one(query, user_id)
+    row = await db.fetch_one(query, user_id)
+    return Profile(**row) if row else None
 
-async def update_profile(db: DatabaseAdapter, user_id: int, profile: ProfileUpdate) -> Optional[Dict]:
-    """更新用户资料"""
-    update_data = profile.model_dump(exclude_unset=True)
-    if not update_data:
-        return await get_profile(db, user_id)
-    
-    # 先检查profile是否存在
-    existing_query = "SELECT id FROM profiles WHERE user_id = $1"
-    existing = await db.fetch_one(existing_query, user_id)
-    
-    if existing:
-        # 更新现有profile
-        set_clause = ", ".join([f"{key} = ${i+2}" for i, key in enumerate(update_data.keys())])
+
+async def update_user_profile(db: DatabaseAdapter, user_id: UUID, profile_data: ProfileUpdate) -> Optional[Profile]:
+    """更新用户画像"""
+    # 首先检查是否存在画像记录
+    existing_profile = await get_user_profile(db, user_id)
+
+    # 构建动态更新语句
+    set_parts = []
+    values = []
+    param_index = 1
+
+    # 基础字段
+    if hasattr(profile_data, 'bio') and profile_data.bio is not None:
+        set_parts.append(f"bio = ${param_index}")
+        values.append(profile_data.bio)
+        param_index += 1
+
+    if hasattr(profile_data, 'location') and profile_data.location is not None:
+        set_parts.append(f"location = ${param_index}")
+        values.append(profile_data.location)
+        param_index += 1
+
+    if hasattr(profile_data, 'website') and profile_data.website is not None:
+        set_parts.append(f"website = ${param_index}")
+        values.append(profile_data.website)
+        param_index += 1
+
+    if hasattr(profile_data, 'birth_date') and profile_data.birth_date is not None:
+        set_parts.append(f"birth_date = ${param_index}")
+        values.append(profile_data.birth_date)
+        param_index += 1
+
+    # 学生特定字段
+    if hasattr(profile_data, 'urgency_level') and profile_data.urgency_level is not None:
+        set_parts.append(f"urgency_level = ${param_index}")
+        values.append(profile_data.urgency_level)
+        param_index += 1
+
+    if hasattr(profile_data, 'budget_min') and profile_data.budget_min is not None:
+        set_parts.append(f"budget_min = ${param_index}")
+        values.append(profile_data.budget_min)
+        param_index += 1
+
+    if hasattr(profile_data, 'budget_max') and profile_data.budget_max is not None:
+        set_parts.append(f"budget_max = ${param_index}")
+        values.append(profile_data.budget_max)
+        param_index += 1
+
+    if hasattr(profile_data, 'learning_goals') and profile_data.learning_goals is not None:
+        set_parts.append(f"learning_goals = ${param_index}")
+        values.append(profile_data.learning_goals)
+        param_index += 1
+
+    # 导师特定字段
+    if hasattr(profile_data, 'title') and profile_data.title is not None:
+        set_parts.append(f"title = ${param_index}")
+        values.append(profile_data.title)
+        param_index += 1
+
+    if hasattr(profile_data, 'expertise') and profile_data.expertise is not None:
+        set_parts.append(f"expertise = ${param_index}")
+        values.append(profile_data.expertise)
+        param_index += 1
+
+    if hasattr(profile_data, 'experience_years') and profile_data.experience_years is not None:
+        set_parts.append(f"experience_years = ${param_index}")
+        values.append(profile_data.experience_years)
+        param_index += 1
+
+    if hasattr(profile_data, 'hourly_rate') and profile_data.hourly_rate is not None:
+        set_parts.append(f"hourly_rate = ${param_index}")
+        values.append(profile_data.hourly_rate)
+        param_index += 1
+
+    if not set_parts:
+        return existing_profile
+
+    set_parts.append("updated_at = NOW()")
+
+    if existing_profile:
+        # 更新现有记录
         query = f"""
-            UPDATE profiles SET {set_clause}, updated_at = NOW()
-            WHERE user_id = $1
+            UPDATE profiles
+            SET {', '.join(set_parts)}
+            WHERE user_id = ${param_index}
+            RETURNING id, user_id, bio, location, website, birth_date,
+                     urgency_level, budget_min, budget_max, learning_goals,
+                     title, expertise, experience_years, hourly_rate,
+                     created_at, updated_at
         """
-        await db.execute(query, user_id, *update_data.values())
+        values.append(user_id)
     else:
-        # 创建新profile
-        update_data['user_id'] = user_id
-        columns = ", ".join(update_data.keys())
-        placeholders = ", ".join([f"${i+1}" for i in range(len(update_data))])
-        query = f"INSERT INTO profiles ({columns}) VALUES ({placeholders})"
-        await db.execute(query, *update_data.values())
-            
-    return await get_profile(db, user_id) 
+        # 创建新记录
+        # 首先设置所有字段的默认值
+        all_fields = {
+            'user_id': user_id,
+            'bio': None, 'location': None, 'website': None, 'birth_date': None,
+            'urgency_level': None, 'budget_min': None, 'budget_max': None, 'learning_goals': None,
+            'title': None, 'expertise': [], 'experience_years': None, 'hourly_rate': None
+        }
+
+        # 应用更新数据
+        for field, value in profile_data.__dict__.items():
+            if value is not None:
+                all_fields[field] = value
+
+        query = """
+            INSERT INTO profiles (user_id, bio, location, website, birth_date,
+                                urgency_level, budget_min, budget_max, learning_goals,
+                                title, expertise, experience_years, hourly_rate)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            RETURNING id, user_id, bio, location, website, birth_date,
+                     urgency_level, budget_min, budget_max, learning_goals,
+                     title, expertise, experience_years, hourly_rate,
+                     created_at, updated_at
+        """
+        values = (
+            all_fields['user_id'], all_fields['bio'], all_fields['location'], all_fields['website'], all_fields['birth_date'],
+            all_fields['urgency_level'], all_fields['budget_min'], all_fields['budget_max'], all_fields['learning_goals'],
+            all_fields['title'], all_fields['expertise'], all_fields['experience_years'], all_fields['hourly_rate']
+        )
+
+    row = await db.fetch_one(query, *values)
+    return Profile(**row) if row else None

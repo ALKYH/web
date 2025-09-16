@@ -1,6 +1,7 @@
 """
 文件上传相关API 路由
 包括头像、文档等文件上传功能
+基于MinIO对象存储
 """
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
 from typing import List, Optional
@@ -8,11 +9,12 @@ import os
 import uuid
 import mimetypes
 from datetime import datetime
-import aiofiles
 
 from apps.api.v1.deps import get_current_user
 from apps.api.v1.deps import AuthenticatedUser
+from apps.schemas.common import GeneralResponse
 from libs.config.settings import settings
+from libs.storage.minio_manager import minio_storage_manager
 
 router = APIRouter()
 
@@ -26,30 +28,9 @@ ALLOWED_DOCUMENT_TYPES = {
     "text/plain"
 }
 
-# 文件大小限制 (字节)
-MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
-MAX_DOCUMENT_SIZE = 10 * 1024 * 1024  # 10MB
-
-# 上传目录
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(os.path.join(UPLOAD_DIR, "avatars"), exist_ok=True)
-os.makedirs(os.path.join(UPLOAD_DIR, "documents"), exist_ok=True)
-
-def get_file_url(request: Request, relative_path: str) -> str:
-    """构造完整的文件URL"""
-    # 获取请求的基础URL
-    base_url = str(request.base_url).rstrip('/')
-    
-    # 如果是本地开发环境，确保使用正确的端�?
-    if 'localhost' in base_url or '127.0.0.1' in base_url:
-        # 确保使用8000端口（开发环境的后端端口�?
-        if ':3001' in base_url or ':3000' in base_url:
-            base_url = 'http://localhost:8000'
-        elif 'localhost' in base_url and ':8000' not in base_url:
-            base_url = 'http://localhost:8000'
-    
-    return f"{base_url}{relative_path}"
+# 文件大小限制 (使用MinIO配置)
+MAX_IMAGE_SIZE = settings.minio.MAX_AVATAR_SIZE
+MAX_DOCUMENT_SIZE = settings.minio.MAX_DOCUMENT_SIZE
 
 def validate_file_type(file: UploadFile, allowed_types: set) -> bool:
     """验证文件类型"""
@@ -113,26 +94,26 @@ async def upload_avatar(
                 detail=f"文件大小超过限制。最大允�?{MAX_IMAGE_SIZE // (1024*1024)}MB"
             )
         
-        # 生成唯一文件�?
-        unique_filename = generate_unique_filename(file.filename)
-        file_path = os.path.join(UPLOAD_DIR, "avatars", unique_filename)
-        
-        # 保存文件
-        async with aiofiles.open(file_path, 'wb') as f:
-            await f.write(contents)
-        
-        # 生成完整的文件URL
-        # 注意�?static/ 已映射到 uploads/ 目录，所以路径不需要包�?uploads/
-        relative_path = f"/static/avatars/{unique_filename}"
-        file_url = get_file_url(request, relative_path)
+        # 使用MinIO存储管理器上传文件
+        upload_result = await minio_storage_manager.upload_file(
+            file_content=contents,
+            original_filename=file.filename,
+            file_type="avatar",
+            user_id=str(current_user.id)
+        )
+
+        file_url = upload_result["file_url"]
+        unique_filename = upload_result["unique_filename"]
         
         return {
-            "file_id": str(uuid.uuid4()),
+            "file_id": upload_result["file_id"],
             "filename": file.filename,
             "file_url": file_url,
             "file_size": file_size,
             "content_type": file.content_type,
-            "uploaded_at": datetime.now().isoformat()
+            "bucket_name": upload_result["bucket_name"],
+            "object_name": upload_result["object_name"],
+            "uploaded_at": upload_result["uploaded_at"]
         }
         
     except HTTPException:
@@ -181,27 +162,27 @@ async def upload_document(
                 detail=f"文件大小超过限制。最大允�?{MAX_DOCUMENT_SIZE // (1024*1024)}MB"
             )
         
-        # 生成唯一文件�?
-        unique_filename = generate_unique_filename(file.filename)
-        file_path = os.path.join(UPLOAD_DIR, "documents", unique_filename)
-        
-        # 保存文件
-        async with aiofiles.open(file_path, 'wb') as f:
-            await f.write(contents)
-        
-        # 生成完整的文件URL
-        # 注意�?static/ 已映射到 uploads/ 目录，所以路径不需要包�?uploads/
-        relative_path = f"/static/documents/{unique_filename}"
-        file_url = get_file_url(request, relative_path)
+        # 使用MinIO存储管理器上传文件
+        upload_result = await minio_storage_manager.upload_file(
+            file_content=contents,
+            original_filename=file.filename,
+            file_type="document",
+            user_id=str(current_user.id)
+        )
+
+        file_url = upload_result["file_url"]
+        unique_filename = upload_result["unique_filename"]
         
         return {
-            "file_id": str(uuid.uuid4()),
+            "file_id": upload_result["file_id"],
             "filename": file.filename,
             "file_url": file_url,
             "file_size": file_size,
             "content_type": file.content_type,
             "description": description,
-            "uploaded_at": datetime.now().isoformat()
+            "bucket_name": upload_result["bucket_name"],
+            "object_name": upload_result["object_name"],
+            "uploaded_at": upload_result["uploaded_at"]
         }
         
     except HTTPException:
@@ -214,7 +195,7 @@ async def upload_document(
 
 @router.post(
     "/upload/multiple",
-    response_model=List[dict],
+    response_model=GeneralResponse[List[dict]],
     summary="批量上传文件",
     description="批量上传多个文件"
 )
@@ -266,22 +247,24 @@ async def upload_multiple_files(
                     
                 subdir = "documents"
             
-            # 保存文件
-            unique_filename = generate_unique_filename(file.filename)
-            file_path = os.path.join(UPLOAD_DIR, subdir, unique_filename)
-            
-            async with aiofiles.open(file_path, 'wb') as f:
-                await f.write(contents)
-            
-            file_url = f"/static/uploads/{subdir}/{unique_filename}"
-            
+            # 使用MinIO存储管理器上传文件
+            file_type = "avatar" if file_type == "avatar" else "document"
+            upload_result = await minio_storage_manager.upload_file(
+                file_content=contents,
+                original_filename=file.filename,
+                file_type=file_type,
+                user_id=str(current_user.id)
+            )
+
             results.append({
-                "file_id": str(uuid.uuid4()),
+                "file_id": upload_result["file_id"],
                 "filename": file.filename,
-                "file_url": file_url,
+                "file_url": upload_result["file_url"],
                 "file_size": len(contents),
                 "content_type": file.content_type,
-                "uploaded_at": datetime.now().isoformat(),
+                "bucket_name": upload_result["bucket_name"],
+                "object_name": upload_result["object_name"],
+                "uploaded_at": upload_result["uploaded_at"],
                 "index": i
             })
             
@@ -298,37 +281,161 @@ async def upload_multiple_files(
     response = {"uploaded_files": results}
     if errors:
         response["errors"] = errors
-    
-    return results
+
+    return GeneralResponse(data=results)
 
 @router.delete(
-    "/files/{file_id}",
+    "/files/{bucket_name}/{object_name}",
     response_model=dict,
     summary="删除文件",
     description="删除已上传的文件"
 )
 async def delete_file(
-    file_id: str,
+    bucket_name: str,
+    object_name: str,
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
     """
     删除文件
-    
-    - **file_id**: 文件ID
-    
-    注意: 这里需要实现文件删除逻辑，包括数据库记录和物理文�?
+
+    - **bucket_name**: 存储桶名称
+    - **object_name**: 对象名称
     """
     try:
-        # TODO: 实现文件删除逻辑
-        # 1. 从数据库中查找文件记�?
-        # 2. 验证文件所有权
-        # 3. 删除物理文件
-        # 4. 删除数据库记�?
-        
-        return {"message": "文件删除成功", "file_id": file_id}
-        
+        # 验证存储桶名称是否有效
+        valid_buckets = [
+            settings.minio.MINIO_BUCKET_AVATARS,
+            settings.minio.MINIO_BUCKET_DOCUMENTS,
+            settings.minio.MINIO_BUCKET_GENERAL
+        ]
+
+        if bucket_name not in valid_buckets:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="无效的存储桶名称"
+            )
+
+        # 从MinIO删除文件
+        success = await minio_storage_manager.delete_file(bucket_name, object_name)
+
+        if success:
+            return {
+                "message": "文件删除成功",
+                "bucket_name": bucket_name,
+                "object_name": object_name
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="文件不存在或已被删除"
+            )
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"文件删除失败: {str(e)}"
-        ) 
+        )
+
+
+@router.get(
+    "/files/{bucket_name}/{object_name}",
+    response_model=dict,
+    summary="获取文件信息",
+    description="获取已上传文件的信息"
+)
+async def get_file_info(
+    bucket_name: str,
+    object_name: str,
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    获取文件信息
+
+    - **bucket_name**: 存储桶名称
+    - **object_name**: 对象名称
+    """
+    try:
+        # 验证存储桶名称是否有效
+        valid_buckets = [
+            settings.minio.MINIO_BUCKET_AVATARS,
+            settings.minio.MINIO_BUCKET_DOCUMENTS,
+            settings.minio.MINIO_BUCKET_GENERAL
+        ]
+
+        if bucket_name not in valid_buckets:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="无效的存储桶名称"
+            )
+
+        # 获取文件信息
+        file_info = await minio_storage_manager.get_file_info(bucket_name, object_name)
+
+        return file_info
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取文件信息失败: {str(e)}"
+        )
+
+
+@router.post(
+    "/files/{bucket_name}/{object_name}/refresh-url",
+    response_model=dict,
+    summary="刷新文件URL",
+    description="刷新文件的预签名URL"
+)
+async def refresh_file_url(
+    bucket_name: str,
+    object_name: str,
+    expires_minutes: int = 60,
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    刷新文件URL
+
+    - **bucket_name**: 存储桶名称
+    - **object_name**: 对象名称
+    - **expires_minutes**: URL过期时间（分钟）
+    """
+    try:
+        # 验证存储桶名称是否有效
+        valid_buckets = [
+            settings.minio.MINIO_BUCKET_AVATARS,
+            settings.minio.MINIO_BUCKET_DOCUMENTS,
+            settings.minio.MINIO_BUCKET_GENERAL
+        ]
+
+        if bucket_name not in valid_buckets:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="无效的存储桶名称"
+            )
+
+        # 生成新的预签名URL
+        file_url = await minio_storage_manager.get_file_url(
+            bucket_name=bucket_name,
+            object_name=object_name,
+            expires_minutes=expires_minutes
+        )
+
+        return {
+            "file_url": file_url,
+            "bucket_name": bucket_name,
+            "object_name": object_name,
+            "expires_minutes": expires_minutes,
+            "refreshed_at": datetime.now().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"刷新文件URL失败: {str(e)}"
+        )

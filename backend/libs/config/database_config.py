@@ -51,7 +51,10 @@ class DatabaseConfig(BaseSettings):
         # 从 Supabase URL 提取项目 ID
         if 'supabase.co' in self.SUPABASE_URL:
             project_id = self.SUPABASE_URL.replace('https://', '').replace('.supabase.co', '')
-            self._postgres_url = f"postgresql://postgres:{db_password}@db.{project_id}.supabase.co:5432/postgres"
+            # 使用官方提供的、保证解析到IPv4的连接池主机名和格式
+            pooler_hostname = f"aws-0-ap-southeast-1.pooler.supabase.com"
+            pooler_user = f"postgres.{project_id}"
+            self._postgres_url = f"postgresql://{pooler_user}:{db_password}@{pooler_hostname}:5432/postgres"
         else:
             raise ValueError("Invalid SUPABASE_URL format")
             

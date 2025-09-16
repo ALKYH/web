@@ -7,8 +7,9 @@ from typing import List, Optional
 
 from apps.api.v1.deps import get_current_user, require_student_role, get_database, AuthenticatedUser
 from apps.schemas.matching import (
-    MatchingRequest, MatchingFilter, RecommendationRequest
+    MatchingRequest, MatchingFilter, RecommendationRequest, MatchingResult, MatchingHistory
 )
+from apps.schemas.common import GeneralResponse
 from apps.api.v1.services import matching as matching_service
 from libs.database.adapters import DatabaseAdapter
 
@@ -17,7 +18,7 @@ router = APIRouter()
 
 @router.post(
     "/recommend",
-    response_model=dict,
+    response_model=GeneralResponse[MatchingResult],
     summary="基于需求推荐指导者",
     description="基于申请者的具体需求智能推荐匹配的指导者"
 )
@@ -27,12 +28,13 @@ async def recommend_mentors(
     current_user: AuthenticatedUser = Depends(require_student_role())
 ):
     """基于需求推荐指导者"""
-    return await matching_service.recommend_mentors(db, int(current_user.id), request)
+    result = await matching_service.recommend_mentors(db, current_user.id, request)
+    return GeneralResponse(data=result)
 
 
 @router.get(
     "/filters",
-    response_model=dict,
+    response_model=GeneralResponse[dict],
     summary="获取筛选条件",
     description="获取所有可用的筛选条件（学校/专业列表等）"
 )
@@ -40,12 +42,13 @@ async def get_filters(
     db: DatabaseAdapter = Depends(get_database)
 ):
     """获取筛选条件"""
-    return await matching_service.get_filters(db)
+    filters = await matching_service.get_filters(db)
+    return GeneralResponse(data=filters)
 
 
 @router.post(
     "/filter",
-    response_model=List[dict],
+    response_model=GeneralResponse[List[dict]],
     summary="高级筛选指导者",
     description="使用高级筛选条件查找指导者"
 )
@@ -57,12 +60,13 @@ async def filter_mentors(
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
     """高级筛选指导者"""
-    return await matching_service.filter_mentors(db, filters, limit, offset)
+    mentors = await matching_service.filter_mentors(db, filters, limit, offset)
+    return GeneralResponse(data=mentors)
 
 
 @router.get(
     "/history",
-    response_model=List[dict],
+    response_model=GeneralResponse[List[MatchingHistory]],
     summary="查看匹配历史",
     description="查看申请者的匹配历史记录"
 )
@@ -72,12 +76,13 @@ async def get_matching_history(
     current_user: AuthenticatedUser = Depends(require_student_role())
 ):
     """查看匹配历史"""
-    return await matching_service.get_matching_history(db, int(current_user.id), limit)
+    history = await matching_service.get_matching_history(db, current_user.id, limit)
+    return GeneralResponse(data=history)
 
 
 @router.post(
     "/recommendations",
-    response_model=dict,
+    response_model=GeneralResponse[dict],
     summary="上下文推荐",
     description="根据不同上下文（首页/搜索/个人资料/服务）获取推荐"
 )
@@ -87,12 +92,13 @@ async def get_contextual_recommendations(
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
     """上下文推荐"""
-    return await matching_service.get_contextual_recommendations(db, request, int(current_user.id))
+    recommendations = await matching_service.get_contextual_recommendations(db, request, current_user.id)
+    return GeneralResponse(data=recommendations)
 
 
 @router.get(
     "/popular",
-    response_model=List[dict],
+    response_model=GeneralResponse[List[dict]],
     summary="热门指导者",
     description="获取平台上最受欢迎的指导者"
 )
@@ -102,12 +108,13 @@ async def get_popular_mentors(
     db: DatabaseAdapter = Depends(get_database)
 ):
     """获取热门指导者"""
-    return await matching_service.get_popular_mentors(db, limit, exclude_ids)
+    mentors = await matching_service.get_popular_mentors(db, limit, exclude_ids)
+    return GeneralResponse(data=mentors)
 
 
 @router.get(
     "/similar",
-    response_model=List[dict],
+    response_model=GeneralResponse[List[dict]],
     summary="相似背景推荐",
     description="基于申请者背景推荐相似经历的指导者"
 )
@@ -118,12 +125,13 @@ async def get_similar_background_mentors(
     current_user: AuthenticatedUser = Depends(require_student_role())
 ):
     """相似背景推荐"""
-    return await matching_service.get_similar_background_mentors(db, int(current_user.id), limit, exclude_ids)
+    mentors = await matching_service.get_similar_background_mentors(db, current_user.id, limit, exclude_ids)
+    return GeneralResponse(data=mentors)
 
 
 @router.get(
     "/by-service",
-    response_model=List[dict],
+    response_model=GeneralResponse[List[dict]],
     summary="服务相关推荐",
     description="基于特定服务类型推荐指导者"
 )
@@ -135,4 +143,5 @@ async def get_service_related_mentors(
 ):
     """服务相关推荐"""
     preferences = {"service_category": service_category}
-    return await matching_service.get_service_related_mentors(db, preferences, limit, exclude_ids)
+    mentors = await matching_service.get_service_related_mentors(db, preferences, limit, exclude_ids)
+    return GeneralResponse(data=mentors)

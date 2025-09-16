@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Optional
+from uuid import UUID
 from apps.api.v1.deps import get_current_user, require_mentor_role, require_student_role, get_database
 from apps.api.v1.deps import AuthenticatedUser
-from apps.schemas.session import (
-    SessionCreate, SessionUpdate, SessionRead, SessionFeedback, SessionSummary
+from apps.schemas.mentorship import (
+    SessionCreate, SessionUpdate, Session, SessionRead, SessionFeedback, SessionSummary
 )
 from apps.api.v1.repositories import session
 
@@ -44,7 +45,7 @@ async def create_session(
     description="获取指定会话的详细信息",
 )
 async def get_session_detail(
-    session_id: int,
+    session_id: UUID,
     db_conn=Depends(get_database),
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
@@ -94,7 +95,7 @@ async def get_my_sessions(
     description="更新会话的详细信息",
 )
 async def update_session(
-    session_id: int,
+    session_id: UUID,
     session_data: SessionUpdate,
     db_conn=Depends(get_database),
     current_user: AuthenticatedUser = Depends(get_current_user)
@@ -123,7 +124,7 @@ async def update_session(
     description="开始进行指导会话",
 )
 async def start_session(
-    session_id: int,
+    session_id: UUID,
     db_conn=Depends(get_database),
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
@@ -154,7 +155,7 @@ async def start_session(
     description="结束指导会话"
 )
 async def end_session(
-    session_id: int,
+    session_id: UUID,
     actual_duration: Optional[int] = Query(None, description="实际时长（分钟）"),
     db_conn=Depends(get_database),
     current_user: AuthenticatedUser = Depends(get_current_user)
@@ -188,7 +189,7 @@ async def end_session(
     description="取消预定的指导会话",
 )
 async def cancel_session(
-    session_id: int,
+    session_id: UUID,
     reason: Optional[str] = Query(None, description="取消原因"),
     db_conn=Depends(get_database),
     current_user: AuthenticatedUser = Depends(get_current_user)
@@ -222,7 +223,7 @@ async def cancel_session(
     description="提交会话反馈和评分",
 )
 async def submit_feedback(
-    session_id: int,
+    session_id: UUID,
     feedback: SessionFeedback,
     db_conn=Depends(get_database),
     current_user: AuthenticatedUser = Depends(get_current_user)
@@ -257,7 +258,7 @@ async def submit_feedback(
     description="保存会话的详细总结信息"
 )
 async def save_summary(
-    session_id: int,
+    session_id: UUID,
     summary: SessionSummary,
     db_conn=Depends(get_database),
     current_user: AuthenticatedUser = Depends(get_current_user)

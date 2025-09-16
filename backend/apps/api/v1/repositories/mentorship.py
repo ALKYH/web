@@ -1,354 +1,487 @@
 """
-导师系统相关的CRUD操作
+导师制 & 服务 - 仓库层
+提供服务、导师关系、会话和评价的数据库操作
 """
-from typing import Optional, List, Dict, Any
+from typing import List, Optional
+from uuid import UUID
+
 from apps.schemas.mentorship import (
-    MentorMatchCreate, MentorMatchUpdate,
-    MentorshipRelationshipCreate, MentorshipRelationshipUpdate,
-    MentorshipSessionCreate, MentorshipSessionUpdate,
-    MentorshipReviewCreate, MentorshipReviewUpdate,
-    MentorshipTransactionCreate, MentorshipTransactionUpdate
+    Service, ServiceCreate, ServiceUpdate,
+    Mentorship, MentorshipCreate, MentorshipUpdate,
+    Session, SessionCreate, SessionUpdate,
+    Review, ReviewCreate, ReviewUpdate
 )
 from libs.database.adapters import DatabaseAdapter
 
 
-# 导师匹配相关操作
+# ============ 服务仓库操作 ============
 
-async def get_mentor_match_by_id(db: DatabaseAdapter, match_id: int) -> Optional[Dict]:
-    """根据ID获取导师匹配"""
-    query = "SELECT * FROM mentor_matches WHERE id = $1"
-    return await db.fetch_one(query, match_id)
+async def get_services(
+    db: DatabaseAdapter,
+    skill_id: Optional[UUID] = None,
+    mentor_id: Optional[UUID] = None,
+    page: int = 1,
+    page_size: int = 10
+) -> List[Service]:
+    """获取服务列表"""
+    offset = (page - 1) * page_size
+    where_conditions = ["is_active = true"]
+    params = []
 
+    if skill_id:
+        where_conditions.append("skill_id = $1")
+        params.append(skill_id)
 
-async def get_mentor_matches_for_user(db: DatabaseAdapter, user_id: int, status: Optional[str] = None, skip: int = 0, limit: int = 50) -> List[Dict]:
-    """获取用户的导师匹配"""
-    where_clause = "WHERE mentor_id = $1 OR mentee_id = $1"
-    params = [user_id]
+    if mentor_id:
+        where_conditions.append("mentor_id = $1")
+        params.append(mentor_id)
 
-    if status:
-        where_clause += " AND status = $2"
-        params.append(status)
+    where_clause = " AND ".join(where_conditions)
 
     query = f"""
-        SELECT mm.*, u1.username as mentor_username, u2.username as mentee_username,
-               s.name as skill_name
-        FROM mentor_matches mm
-        JOIN users u1 ON mm.mentor_id = u1.id
-        JOIN users u2 ON mm.mentee_id = u2.id
-        LEFT JOIN skills s ON mm.skill_id = s.id
-        {where_clause}
-        ORDER BY mm.created_at DESC
+        SELECT id, mentor_id, skill_id, title, description, price, duration_hours, is_active, created_at, updated_at
+        FROM services
+        WHERE {where_clause}
+        ORDER BY created_at DESC
         LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
     """
-    params.extend([limit, skip])
-    return await db.fetch_all(query, *params)
+    params.extend([page_size, offset])
+
+    rows = await db.fetch_all(query, *params)
+    return [Service(**row) for row in rows]
 
 
-async def create_mentor_match(db: DatabaseAdapter, match: MentorMatchCreate) -> Optional[Dict]:
-    """创建导师匹配"""
+async def get_service_by_id(db: DatabaseAdapter, service_id: UUID) -> Optional[Service]:
+    """根据ID获取服务"""
     query = """
-        INSERT INTO mentor_matches (
-            mentor_id, mentee_id, skill_id, learning_need_id, mentor_skill_id,
-            match_score, match_algorithm, match_factors, status, created_at, updated_at, expires_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), NOW() + INTERVAL '7 days')
-        RETURNING *
+        SELECT id, mentor_id, skill_id, title, description, price, duration_hours, is_active, created_at, updated_at
+        FROM services
+        WHERE id = $1 AND is_active = true
+    """
+    row = await db.fetch_one(query, service_id)
+    return Service(**row) if row else None
+
+
+async def create_service(
+    db: DatabaseAdapter,
+    user_id: UUID,
+    service_data: ServiceCreate
+) -> Optional[Service]:
+    """创建服务"""
+    query = """
+        INSERT INTO services (mentor_id, skill_id, title, description, price, duration_hours, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, mentor_id, skill_id, title, description, price, duration_hours, is_active, created_at, updated_at
     """
     values = (
-        match.mentor_id, match.mentee_id, match.skill_id, match.learning_need_id,
-        match.mentor_skill_id, match.match_score, match.match_algorithm,
-        match.match_factors, match.status
+        user_id,
+        service_data.skill_id,
+        service_data.title,
+        service_data.description,
+        service_data.price,
+        service_data.duration_hours,
+        service_data.is_active
     )
-    return await db.fetch_one(query, *values)
+    row = await db.fetch_one(query, *values)
+    return Service(**row) if row else None
 
 
-async def update_mentor_match(db: DatabaseAdapter, match_id: int, update_data: MentorMatchUpdate) -> Optional[Dict]:
-    """更新导师匹配"""
-    data = update_data.model_dump(exclude_unset=True)
-    if not data:
-        return await get_mentor_match_by_id(db, match_id)
+async def update_service(
+    db: DatabaseAdapter,
+    service_id: UUID,
+    user_id: UUID,
+    service_data: ServiceUpdate
+) -> Optional[Service]:
+    """更新服务"""
+    # 构建动态更新语句
+    set_parts = []
+    values = []
+    param_index = 1
 
-    set_clause = ", ".join([f"{key} = ${i+2}" for i, key in enumerate(data.keys())])
+    if service_data.title is not None:
+        set_parts.append(f"title = ${param_index}")
+        values.append(service_data.title)
+        param_index += 1
+
+    if service_data.description is not None:
+        set_parts.append(f"description = ${param_index}")
+        values.append(service_data.description)
+        param_index += 1
+
+    if service_data.price is not None:
+        set_parts.append(f"price = ${param_index}")
+        values.append(service_data.price)
+        param_index += 1
+
+    if service_data.duration_hours is not None:
+        set_parts.append(f"duration_hours = ${param_index}")
+        values.append(service_data.duration_hours)
+        param_index += 1
+
+    if service_data.is_active is not None:
+        set_parts.append(f"is_active = ${param_index}")
+        values.append(service_data.is_active)
+        param_index += 1
+
+    if not set_parts:
+        return await get_service_by_id(db, service_id)
+
+    set_parts.append("updated_at = NOW()")
+
     query = f"""
-        UPDATE mentor_matches SET {set_clause}, updated_at = NOW()
-        WHERE id = $1
-        RETURNING *
+        UPDATE services
+        SET {', '.join(set_parts)}
+        WHERE id = ${param_index} AND mentor_id = ${param_index + 1}
+        RETURNING id, mentor_id, skill_id, title, description, price, duration_hours, is_active, created_at, updated_at
     """
-    return await db.fetch_one(query, match_id, *data.values())
+    values.extend([service_id, user_id])
+
+    row = await db.fetch_one(query, *values)
+    return Service(**row) if row else None
 
 
-# 导师关系相关操作
-
-async def get_mentorship_relationship_by_id(db: DatabaseAdapter, relationship_id: int) -> Optional[Dict]:
-    """根据ID获取导师关系"""
+async def delete_service(db: DatabaseAdapter, service_id: UUID, user_id: UUID) -> bool:
+    """删除服务（软删除）"""
     query = """
-        SELECT mr.*, u1.username as mentor_username, u2.username as mentee_username,
-               s.name as skill_name
-        FROM mentorship_relationships mr
-        JOIN users u1 ON mr.mentor_id = u1.id
-        JOIN users u2 ON mr.mentee_id = u2.id
-        LEFT JOIN skills s ON mr.skill_id = s.id
-        WHERE mr.id = $1
+        UPDATE services
+        SET is_active = false, updated_at = NOW()
+        WHERE id = $1 AND mentor_id = $2 AND is_active = true
     """
-    return await db.fetch_one(query, relationship_id)
+    result = await db.execute(query, service_id, user_id)
+    return result == "UPDATE 1"
 
 
-async def get_mentorship_relationships_for_user(db: DatabaseAdapter, user_id: int, status: Optional[str] = None, skip: int = 0, limit: int = 50) -> List[Dict]:
-    """获取用户的导师关系"""
-    where_clause = "WHERE mentor_id = $1 OR mentee_id = $1"
-    params = [user_id]
-
-    if status:
-        where_clause += " AND status = $2"
-        params.append(status)
-
-    query = f"""
-        SELECT mr.*, u1.username as mentor_username, u2.username as mentee_username,
-               s.name as skill_name
-        FROM mentorship_relationships mr
-        JOIN users u1 ON mr.mentor_id = u1.id
-        JOIN users u2 ON mr.mentee_id = u2.id
-        LEFT JOIN skills s ON mr.skill_id = s.id
-        {where_clause}
-        ORDER BY mr.created_at DESC
-        LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
+async def get_services_by_mentor(db: DatabaseAdapter, mentor_id: UUID) -> List[Service]:
+    """获取导师的服务列表"""
+    query = """
+        SELECT id, mentor_id, skill_id, title, description, price, duration_hours, is_active, created_at, updated_at
+        FROM services
+        WHERE mentor_id = $1
+        ORDER BY created_at DESC
     """
-    params.extend([limit, skip])
-    return await db.fetch_all(query, *params)
+    rows = await db.fetch_all(query, mentor_id)
+    return [Service(**row) for row in rows]
 
 
-async def create_mentorship_relationship(db: DatabaseAdapter, relationship: MentorshipRelationshipCreate) -> Optional[Dict]:
+# ============ 导师关系仓库操作 ============
+
+async def create_mentorship(
+    db: DatabaseAdapter,
+    mentorship_data: MentorshipCreate
+) -> Optional[Mentorship]:
     """创建导师关系"""
     query = """
-        INSERT INTO mentorship_relationships (
-            mentor_id, mentee_id, skill_id, match_id, title, description,
-            learning_goals, success_criteria, start_date, estimated_end_date,
-            total_sessions_planned, session_duration_minutes, hourly_rate,
-            currency, total_amount, payment_schedule, relationship_type,
-            preferred_communication, meeting_frequency, timezone, status,
-            created_at, updated_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NOW(), NOW())
-        RETURNING *
+        INSERT INTO mentorships (mentor_id, mentee_id, service_id, status)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, mentor_id, mentee_id, service_id, status, created_at, updated_at
     """
     values = (
-        relationship.mentor_id, relationship.mentee_id, relationship.skill_id,
-        relationship.match_id, relationship.title, relationship.description,
-        relationship.learning_goals, relationship.success_criteria,
-        relationship.start_date, relationship.estimated_end_date,
-        relationship.total_sessions_planned, relationship.session_duration_minutes,
-        relationship.hourly_rate, relationship.currency, relationship.total_amount,
-        relationship.payment_schedule, relationship.relationship_type,
-        relationship.preferred_communication, relationship.meeting_frequency,
-        relationship.timezone, relationship.status
+        mentorship_data.mentor_id,
+        mentorship_data.mentee_id,
+        mentorship_data.service_id,
+        mentorship_data.status.value
     )
-    return await db.fetch_one(query, *values)
+    row = await db.fetch_one(query, *values)
+    return Mentorship(**row) if row else None
 
 
-async def update_mentorship_relationship(db: DatabaseAdapter, relationship_id: int, update_data: MentorshipRelationshipUpdate) -> Optional[Dict]:
+async def get_mentorship(
+    db: DatabaseAdapter,
+    mentorship_id: UUID,
+    user_id: UUID
+) -> Optional[Mentorship]:
+    """获取导师关系"""
+    query = """
+        SELECT id, mentor_id, mentee_id, service_id, status, created_at, updated_at
+        FROM mentorships
+        WHERE id = $1 AND (mentor_id = $2 OR mentee_id = $2)
+    """
+    row = await db.fetch_one(query, mentorship_id, user_id)
+    return Mentorship(**row) if row else None
+
+
+async def update_mentorship(
+    db: DatabaseAdapter,
+    mentorship_id: UUID,
+    user_id: UUID,
+    mentorship_data: MentorshipUpdate
+) -> Optional[Mentorship]:
     """更新导师关系"""
-    data = update_data.model_dump(exclude_unset=True)
-    if not data:
-        return await get_mentorship_relationship_by_id(db, relationship_id)
+    if mentorship_data.status is None:
+        return await get_mentorship(db, mentorship_id, user_id)
 
-    set_clause = ", ".join([f"{key} = ${i+2}" for i, key in enumerate(data.keys())])
+    query = """
+        UPDATE mentorships
+        SET status = $1, updated_at = NOW()
+        WHERE id = $2 AND (mentor_id = $3 OR mentee_id = $3)
+        RETURNING id, mentor_id, mentee_id, service_id, status, created_at, updated_at
+    """
+    values = (mentorship_data.status.value, mentorship_id, user_id)
+    row = await db.fetch_one(query, *values)
+    return Mentorship(**row) if row else None
+
+
+async def get_mentorships_by_user(
+    db: DatabaseAdapter,
+    user_id: UUID,
+    role: str = "all"
+) -> List[Mentorship]:
+    """获取用户的导师关系列表"""
+    if role == "mentor":
+        where_clause = "mentor_id = $1"
+    elif role == "mentee":
+        where_clause = "mentee_id = $1"
+    else:
+        where_clause = "(mentor_id = $1 OR mentee_id = $1)"
+
     query = f"""
-        UPDATE mentorship_relationships SET {set_clause}, updated_at = NOW()
-        WHERE id = $1
-        RETURNING *
-    """
-    return await db.fetch_one(query, relationship_id, *data.values())
-
-
-# 导师会话相关操作
-
-async def get_mentorship_session_by_id(db: DatabaseAdapter, session_id: int) -> Optional[Dict]:
-    """根据ID获取导师会话"""
-    query = "SELECT * FROM mentorship_sessions WHERE id = $1"
-    return await db.fetch_one(query, session_id)
-
-
-async def get_sessions_for_relationship(db: DatabaseAdapter, relationship_id: int, skip: int = 0, limit: int = 50) -> List[Dict]:
-    """获取关系的所有会话"""
-    query = """
-        SELECT * FROM mentorship_sessions
-        WHERE relationship_id = $1
-        ORDER BY session_number
-        LIMIT $2 OFFSET $3
-    """
-    return await db.fetch_all(query, relationship_id, limit, skip)
-
-
-async def create_mentorship_session(db: DatabaseAdapter, session: MentorshipSessionCreate) -> Optional[Dict]:
-    """创建导师会话"""
-    query = """
-        INSERT INTO mentorship_sessions (
-            relationship_id, session_number, scheduled_at, duration_minutes,
-            agenda, status, created_at, updated_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-        RETURNING *
-    """
-    values = (
-        session.relationship_id, session.session_number, session.scheduled_at,
-        session.duration_minutes, session.agenda, session.status
-    )
-    return await db.fetch_one(query, *values)
-
-
-async def update_mentorship_session(db: DatabaseAdapter, session_id: int, update_data: MentorshipSessionUpdate) -> Optional[Dict]:
-    """更新导师会话"""
-    data = update_data.model_dump(exclude_unset=True)
-    if not data:
-        return await get_mentorship_session_by_id(db, session_id)
-
-    set_clause = ", ".join([f"{key} = ${i+2}" for i, key in enumerate(data.keys())])
-    query = f"""
-        UPDATE mentorship_sessions SET {set_clause}, updated_at = NOW()
-        WHERE id = $1
-        RETURNING *
-    """
-    return await db.fetch_one(query, session_id, *data.values())
-
-
-# 导师评价相关操作
-
-async def get_mentorship_review_by_id(db: DatabaseAdapter, review_id: int) -> Optional[Dict]:
-    """根据ID获取导师评价"""
-    query = """
-        SELECT mr.*, u1.username as reviewer_username, u2.username as reviewee_username
-        FROM mentorship_reviews mr
-        JOIN users u1 ON mr.reviewer_id = u1.id
-        JOIN users u2 ON mr.reviewee_id = u2.id
-        WHERE mr.id = $1
-    """
-    return await db.fetch_one(query, review_id)
-
-
-async def get_reviews_for_relationship(db: DatabaseAdapter, relationship_id: int) -> List[Dict]:
-    """获取关系的所有评价"""
-    query = """
-        SELECT mr.*, u1.username as reviewer_username, u2.username as reviewee_username
-        FROM mentorship_reviews mr
-        JOIN users u1 ON mr.reviewer_id = u1.id
-        JOIN users u2 ON mr.reviewee_id = u2.id
-        WHERE mr.relationship_id = $1
-        ORDER BY mr.created_at DESC
-    """
-    return await db.fetch_all(query, relationship_id)
-
-
-async def create_mentorship_review(db: DatabaseAdapter, review: MentorshipReviewCreate) -> Optional[Dict]:
-    """创建导师评价"""
-    query = """
-        INSERT INTO mentorship_reviews (
-            relationship_id, reviewer_id, reviewee_id, reviewer_role,
-            overall_rating, communication_rating, expertise_rating,
-            timeliness_rating, value_rating, professionalism_rating,
-            comment, pros, areas_for_improvement, would_recommend,
-            would_work_again, positive_tags, negative_tags,
-            learning_objectives_met, skill_improvement, is_public,
-            is_verified, verification_notes, created_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW())
-        RETURNING *
-    """
-    values = (
-        review.relationship_id, review.reviewer_id, review.reviewee_id,
-        review.reviewer_role, review.overall_rating, review.communication_rating,
-        review.expertise_rating, review.timeliness_rating, review.value_rating,
-        review.professionalism_rating, review.comment, review.pros,
-        review.areas_for_improvement, review.would_recommend,
-        review.would_work_again, review.positive_tags, review.negative_tags,
-        review.learning_objectives_met, review.skill_improvement,
-        review.is_public, review.is_verified, review.verification_notes
-    )
-    return await db.fetch_one(query, *values)
-
-
-# 导师交易相关操作
-
-async def get_mentorship_transaction_by_id(db: DatabaseAdapter, transaction_id: int) -> Optional[Dict]:
-    """根据ID获取导师交易"""
-    query = "SELECT * FROM mentorship_transactions WHERE id = $1"
-    return await db.fetch_one(query, transaction_id)
-
-
-async def get_transactions_for_relationship(db: DatabaseAdapter, relationship_id: int, skip: int = 0, limit: int = 50) -> List[Dict]:
-    """获取关系的所有交易"""
-    query = """
-        SELECT * FROM mentorship_transactions
-        WHERE relationship_id = $1
+        SELECT id, mentor_id, mentee_id, service_id, status, created_at, updated_at
+        FROM mentorships
+        WHERE {where_clause}
         ORDER BY created_at DESC
-        LIMIT $2 OFFSET $3
     """
-    return await db.fetch_all(query, relationship_id, limit, skip)
+    rows = await db.fetch_all(query, user_id)
+    return [Mentorship(**row) for row in rows]
 
 
-async def create_mentorship_transaction(db: DatabaseAdapter, transaction: MentorshipTransactionCreate) -> Optional[Dict]:
-    """创建导师交易"""
+# ============ 会话仓库操作 ============
+
+async def create_session(
+    db: DatabaseAdapter,
+    session_data: SessionCreate,
+    user_id: UUID
+) -> Optional[Session]:
+    """创建会话"""
+    # 验证用户是否为导师关系的一部分
+    mentorship = await get_mentorship(db, session_data.mentorship_id, user_id)
+    if not mentorship:
+        return None
+
     query = """
-        INSERT INTO mentorship_transactions (
-            relationship_id, session_id, transaction_type, amount, currency,
-            payment_method, payment_status, external_transaction_id,
-            payment_gateway, description, reference_number, created_at, updated_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
-        RETURNING *
+        INSERT INTO sessions (mentorship_id, scheduled_at, duration_minutes, status, mentor_notes, mentee_notes)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, mentorship_id, scheduled_at, duration_minutes, status, mentor_notes, mentee_notes, created_at, updated_at
     """
     values = (
-        transaction.relationship_id, transaction.session_id, transaction.transaction_type,
-        transaction.amount, transaction.currency, transaction.payment_method,
-        transaction.payment_status, transaction.external_transaction_id,
-        transaction.payment_gateway, transaction.description, transaction.reference_number
+        session_data.mentorship_id,
+        session_data.scheduled_at,
+        session_data.duration_minutes,
+        session_data.status.value,
+        session_data.mentor_notes,
+        session_data.mentee_notes
     )
-    return await db.fetch_one(query, *values)
+    row = await db.fetch_one(query, *values)
+    return Session(**row) if row else None
 
 
-async def update_mentorship_transaction(db: DatabaseAdapter, transaction_id: int, update_data: MentorshipTransactionUpdate) -> Optional[Dict]:
-    """更新导师交易"""
-    data = update_data.model_dump(exclude_unset=True)
-    if not data:
-        return await get_mentorship_transaction_by_id(db, transaction_id)
+async def get_session(
+    db: DatabaseAdapter,
+    session_id: UUID,
+    user_id: UUID
+) -> Optional[Session]:
+    """获取会话"""
+    query = """
+        SELECT s.id, s.mentorship_id, s.scheduled_at, s.duration_minutes, s.status, s.mentor_notes, s.mentee_notes, s.created_at, s.updated_at
+        FROM sessions s
+        JOIN mentorships m ON s.mentorship_id = m.id
+        WHERE s.id = $1 AND (m.mentor_id = $2 OR m.mentee_id = $2)
+    """
+    row = await db.fetch_one(query, session_id, user_id)
+    return Session(**row) if row else None
 
-    set_clause = ", ".join([f"{key} = ${i+2}" for i, key in enumerate(data.keys())])
+
+async def update_session(
+    db: DatabaseAdapter,
+    session_id: UUID,
+    user_id: UUID,
+    session_data: SessionUpdate
+) -> Optional[Session]:
+    """更新会话"""
+    # 构建动态更新语句
+    set_parts = []
+    values = []
+    param_index = 1
+
+    if session_data.scheduled_at is not None:
+        set_parts.append(f"scheduled_at = ${param_index}")
+        values.append(session_data.scheduled_at)
+        param_index += 1
+
+    if session_data.duration_minutes is not None:
+        set_parts.append(f"duration_minutes = ${param_index}")
+        values.append(session_data.duration_minutes)
+        param_index += 1
+
+    if session_data.status is not None:
+        set_parts.append(f"status = ${param_index}")
+        values.append(session_data.status.value)
+        param_index += 1
+
+    if session_data.mentor_notes is not None:
+        set_parts.append(f"mentor_notes = ${param_index}")
+        values.append(session_data.mentor_notes)
+        param_index += 1
+
+    if session_data.mentee_notes is not None:
+        set_parts.append(f"mentee_notes = ${param_index}")
+        values.append(session_data.mentee_notes)
+        param_index += 1
+
+    if not set_parts:
+        return await get_session(db, session_id, user_id)
+
+    set_parts.append("updated_at = NOW()")
+
     query = f"""
-        UPDATE mentorship_transactions SET {set_clause}, updated_at = NOW()
+        UPDATE sessions
+        SET {', '.join(set_parts)}
+        WHERE id = ${param_index}
+        AND mentorship_id IN (
+            SELECT id FROM mentorships
+            WHERE (mentor_id = ${param_index + 1} OR mentee_id = ${param_index + 1})
+        )
+        RETURNING id, mentorship_id, scheduled_at, duration_minutes, status, mentor_notes, mentee_notes, created_at, updated_at
+    """
+    values.extend([session_id, user_id])
+
+    row = await db.fetch_one(query, *values)
+    return Session(**row) if row else None
+
+
+async def get_sessions_by_mentorship(
+    db: DatabaseAdapter,
+    mentorship_id: UUID,
+    user_id: UUID
+) -> List[Session]:
+    """获取导师关系的会话列表"""
+    query = """
+        SELECT s.id, s.mentorship_id, s.scheduled_at, s.duration_minutes, s.status, s.mentor_notes, s.mentee_notes, s.created_at, s.updated_at
+        FROM sessions s
+        JOIN mentorships m ON s.mentorship_id = m.id
+        WHERE s.mentorship_id = $1 AND (m.mentor_id = $2 OR m.mentee_id = $2)
+        ORDER BY s.scheduled_at DESC
+    """
+    rows = await db.fetch_all(query, mentorship_id, user_id)
+    return [Session(**row) for row in rows]
+
+
+# ============ 评价仓库操作 ============
+
+async def create_review(
+    db: DatabaseAdapter,
+    review_data: ReviewCreate,
+    reviewer_id: UUID
+) -> Optional[Review]:
+    """创建评价"""
+    # 验证用户是否为导师关系的一部分且关系已完成
+    mentorship = await get_mentorship(db, review_data.mentorship_id, reviewer_id)
+    if not mentorship or mentorship.status.value != "completed":
+        return None
+
+    # 检查是否已经评价过
+    existing_review = await get_review_by_mentorship_and_reviewer(
+        db, review_data.mentorship_id, reviewer_id
+    )
+    if existing_review:
+        return None
+
+    query = """
+        INSERT INTO reviews (mentorship_id, reviewer_id, reviewee_id, rating, comment)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id, mentorship_id, reviewer_id, reviewee_id, rating, comment, created_at, updated_at
+    """
+    # 确定被评价者
+    reviewee_id = (
+        mentorship.mentor_id if reviewer_id == mentorship.mentee_id
+        else mentorship.mentee_id
+    )
+
+    values = (
+        review_data.mentorship_id,
+        reviewer_id,
+        reviewee_id,
+        review_data.rating,
+        review_data.comment
+    )
+    row = await db.fetch_one(query, *values)
+    return Review(**row) if row else None
+
+
+async def get_review_by_id(db: DatabaseAdapter, review_id: UUID) -> Optional[Review]:
+    """根据ID获取评价"""
+    query = """
+        SELECT id, mentorship_id, reviewer_id, reviewee_id, rating, comment, created_at, updated_at
+        FROM reviews
         WHERE id = $1
-        RETURNING *
     """
-    return await db.fetch_one(query, transaction_id, *data.values())
+    row = await db.fetch_one(query, review_id)
+    return Review(**row) if row else None
 
 
-# 统计相关操作
+async def update_review(
+    db: DatabaseAdapter,
+    review_id: UUID,
+    reviewer_id: UUID,
+    review_data: ReviewUpdate
+) -> Optional[Review]:
+    """更新评价"""
+    # 构建动态更新语句
+    set_parts = []
+    values = []
+    param_index = 1
 
-async def get_user_mentorship_stats(db: DatabaseAdapter, user_id: int) -> Dict[str, Any]:
-    """获取用户的导师统计信息"""
-    # 作为导师的统计
-    mentor_query = """
-        SELECT
-            COUNT(*) as total_relationships,
-            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_relationships,
-            COUNT(CASE WHEN status = 'active' THEN 1 END) as active_relationships,
-            COALESCE(SUM(total_hours_spent), 0) as total_hours
-        FROM mentorship_relationships
-        WHERE mentor_id = $1
+    if review_data.rating is not None:
+        set_parts.append(f"rating = ${param_index}")
+        values.append(review_data.rating)
+        param_index += 1
+
+    if review_data.comment is not None:
+        set_parts.append(f"comment = ${param_index}")
+        values.append(review_data.comment)
+        param_index += 1
+
+    if not set_parts:
+        return await get_review_by_id(db, review_id)
+
+    set_parts.append("updated_at = NOW()")
+
+    query = f"""
+        UPDATE reviews
+        SET {', '.join(set_parts)}
+        WHERE id = ${param_index} AND reviewer_id = ${param_index + 1}
+        RETURNING id, mentorship_id, reviewer_id, reviewee_id, rating, comment, created_at, updated_at
     """
-    mentor_stats = await db.fetch_one(mentor_query, user_id)
+    values.extend([review_id, reviewer_id])
 
-    # 作为学员的统计
-    mentee_query = """
-        SELECT
-            COUNT(*) as total_relationships,
-            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_relationships,
-            COUNT(CASE WHEN status = 'active' THEN 1 END) as active_relationships,
-            COALESCE(SUM(total_hours_spent), 0) as total_hours
-        FROM mentorship_relationships
-        WHERE mentee_id = $1
+    row = await db.fetch_one(query, *values)
+    return Review(**row) if row else None
+
+
+async def get_reviews_by_mentorship(
+    db: DatabaseAdapter,
+    mentorship_id: UUID
+) -> List[Review]:
+    """获取导师关系的所有评价"""
+    query = """
+        SELECT id, mentorship_id, reviewer_id, reviewee_id, rating, comment, created_at, updated_at
+        FROM reviews
+        WHERE mentorship_id = $1
+        ORDER BY created_at DESC
     """
-    mentee_stats = await db.fetch_one(mentee_query, user_id)
+    rows = await db.fetch_all(query, mentorship_id)
+    return [Review(**row) for row in rows]
 
-    return {
-        "as_mentor": mentor_stats,
-        "as_mentee": mentee_stats
-    }
+
+async def get_review_by_mentorship_and_reviewer(
+    db: DatabaseAdapter,
+    mentorship_id: UUID,
+    reviewer_id: UUID
+) -> Optional[Review]:
+    """获取特定用户对导师关系的评价"""
+    query = """
+        SELECT id, mentorship_id, reviewer_id, reviewee_id, rating, comment, created_at, updated_at
+        FROM reviews
+        WHERE mentorship_id = $1 AND reviewer_id = $2
+    """
+    row = await db.fetch_one(query, mentorship_id, reviewer_id)
+    return Review(**row) if row else None

@@ -5,23 +5,17 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from typing import Optional
+from uuid import UUID
 
 from libs.config.settings import settings
 from libs.database.connection import get_database_adapter
 from libs.database.adapters import DatabaseAdapter
+from apps.schemas.token import AuthenticatedUser
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-class AuthenticatedUser:
-    """认证用户类"""
-    def __init__(self, id: str, username: str, email: Optional[str] = None, role: str = "user"):
-        self.id = id
-        self.username = username
-        self.email = email
-        self.role = role
-
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), 
+    token: str = Depends(oauth2_scheme),
     db: DatabaseAdapter = Depends(get_database_adapter)
 ) -> AuthenticatedUser:
     """
@@ -33,30 +27,29 @@ async def get_current_user(
         detail="无法验证凭据",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        user_id: str = payload.get("sub")
+        if user_id is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    
+
     user = await db.fetch_one(
-        "SELECT id, username, email, role, is_active FROM users WHERE username = $1",
-        username
+        "SELECT id, username, email, role, is_active FROM users WHERE id = $1",
+        str(user_id)
     )
-    
+
     if user is None:
         raise credentials_exception
-    
+
     if not user["is_active"]:
         raise HTTPException(status_code=400, detail="账户已被禁用")
-        
+
     return AuthenticatedUser(
-        id=str(user['id']),
+        id=UUID(user['id']),
         username=user['username'],
-        email=user.get('email'),
         role=user.get('role', 'user')
     )
 

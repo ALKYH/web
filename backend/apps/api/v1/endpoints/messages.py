@@ -7,9 +7,10 @@ from typing import List
 
 from apps.api.v1.deps import get_current_user, get_database
 from apps.api.v1.deps import AuthenticatedUser
-from apps.schemas.message import (
+from apps.schemas.communication import (
     MessageCreate, Message, ConversationListItem
 )
+from apps.schemas.common import GeneralResponse
 from apps.api.v1.services import message as message_service
 from libs.database.adapters import DatabaseAdapter
 
@@ -18,7 +19,7 @@ router = APIRouter()
 
 @router.get(
     "",
-    response_model=List[Message],
+    response_model=GeneralResponse[List[Message]],
     summary="获取消息列表",
     description="获取用户的消息列表"
 )
@@ -29,12 +30,13 @@ async def get_messages(
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
     """获取消息列表"""
-    return await message_service.get_messages(db, int(current_user.id), limit, offset)
+    messages = await message_service.get_messages(db, current_user.id, limit, offset)
+    return GeneralResponse(data=messages)
 
 
 @router.post(
     "",
-    response_model=Message,
+    response_model=GeneralResponse[Message],
     status_code=status.HTTP_201_CREATED,
     summary="发送消息",
     description="发送新消息"
@@ -45,12 +47,13 @@ async def send_message(
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
     """发送消息"""
-    return await message_service.send_message(db, int(current_user.id), message_data)
+    message = await message_service.send_message(db, current_user.id, message_data)
+    return GeneralResponse(data=message)
 
 
 @router.get(
     "/{message_id}",
-    response_model=dict,
+    response_model=GeneralResponse[Message],
     summary="获取消息详情",
     description="获取指定消息的详情"
 )
@@ -60,12 +63,13 @@ async def get_message_detail(
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
     """获取消息详情"""
-    return await message_service.get_message_detail(db, message_id, int(current_user.id))
+    message = await message_service.get_message_detail(db, message_id, current_user.id)
+    return GeneralResponse(data=message)
 
 
 @router.put(
     "/{message_id}/read",
-    response_model=dict,
+    response_model=GeneralResponse[dict],
     summary="标记消息为已读",
     description="将消息标记为已读状态"
 )
@@ -75,13 +79,13 @@ async def mark_message_as_read(
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
     """标记消息为已读"""
-    await message_service.mark_message_as_read(db, message_id, int(current_user.id))
-    return {"message": "消息已标记为已读", "message_id": message_id}
+    await message_service.mark_message_as_read(db, message_id, current_user.id)
+    return GeneralResponse(data={"message": "消息已标记为已读", "message_id": message_id})
 
 
 @router.get(
     "/conversations/list",
-    response_model=List[ConversationListItem],
+    response_model=GeneralResponse[List[ConversationListItem]],
     summary="获取对话列表",
     description="获取用户的所有对话"
 )
@@ -91,12 +95,13 @@ async def get_conversations(
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
     """获取对话列表"""
-    return await message_service.get_conversations(db, int(current_user.id), limit)
+    conversations = await message_service.get_conversations(db, current_user.id, limit)
+    return GeneralResponse(data=conversations)
 
 
 @router.get(
     "/conversations/{conversation_id}",
-    response_model=List[Message],
+    response_model=GeneralResponse[List[Message]],
     summary="获取对话消息",
     description="获取指定对话的所有消息"
 )
@@ -108,4 +113,5 @@ async def get_conversation_messages(
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
     """获取对话消息"""
-    return await message_service.get_conversation_messages(db, conversation_id, int(current_user.id), limit, offset)
+    messages = await message_service.get_conversation_messages(db, conversation_id, current_user.id, limit, offset)
+    return GeneralResponse(data=messages)

@@ -1,159 +1,116 @@
 """
-论坛系统的数据模型定义
+论坛中心 - 数据模型
 """
+from typing import List, Optional
+from uuid import UUID
+
 from pydantic import BaseModel, Field
-from typing import Optional, List
-from datetime import datetime
+
+from .common import IDModel, TimestampModel
 
 
+# ============ 论坛帖子 (ForumPost) ============
 class ForumPostBase(BaseModel):
     """论坛帖子基础模型"""
+    author_id: UUID = Field(..., description="作者ID")
     title: str = Field(..., min_length=1, max_length=200, description="帖子标题")
     content: str = Field(..., min_length=1, description="帖子内容")
-    category: str = Field(..., min_length=1, max_length=50, description="帖子分类")
-    tags: Optional[List[str]] = Field(default=[], description="标签数组")
-    is_anonymous: Optional[bool] = Field(default=False, description="是否匿名发布")
+    category: str = Field(..., max_length=50, description="帖子分类")
+    tags: List[str] = Field(default_factory=list, description="标签列表")
 
 
 class ForumPostCreate(ForumPostBase):
-    """创建论坛帖子"""
+    """论坛帖子创建模型"""
     pass
 
 
 class ForumPostUpdate(BaseModel):
-    """更新论坛帖子"""
+    """论坛帖子更新模型"""
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     content: Optional[str] = Field(None, min_length=1)
-    category: Optional[str] = Field(None, min_length=1, max_length=50)
+    category: Optional[str] = Field(None, max_length=50)
     tags: Optional[List[str]] = None
-    is_pinned: Optional[bool] = None
-    is_hot: Optional[bool] = None
 
 
-class ForumPostRead(ForumPostBase):
-    """论坛帖子读取模型"""
-    id: int
-    author_id: int
-    replies_count: int = 0
-    likes_count: int = 0
-    views_count: int = 0
-    is_pinned: bool = False
-    is_hot: bool = False
-    created_at: datetime
-    updated_at: datetime
-    last_activity: datetime
+class ForumPost(IDModel, TimestampModel, ForumPostBase):
+    """论坛帖子完整模型"""
+    views_count: int = Field(0, description="浏览次数")
 
-    model_config = {
-        "from_attributes": True
-    }
+    class Config(IDModel.Config):
+        from_attributes = True
 
 
-class ForumPostDetail(ForumPostRead):
-    """论坛帖子详情"""
-    author_username: Optional[str] = None
-    author_avatar: Optional[str] = None
-    is_liked_by_user: Optional[bool] = None
-
-
-class ForumReplyBase(BaseModel):
-    """论坛回复基础模型"""
-    post_id: int = Field(..., description="帖子ID")
+# ============ 帖子回复 (PostReply) ============
+class PostReplyBase(BaseModel):
+    """帖子回复基础模型"""
+    post_id: UUID = Field(..., description="所属帖子ID")
+    author_id: UUID = Field(..., description="回复者ID")
     content: str = Field(..., min_length=1, description="回复内容")
-    parent_id: Optional[int] = Field(None, description="父回复ID")
-    parent_reply_id: Optional[int] = Field(None, description="父回复ID")
+    parent_reply_id: Optional[UUID] = Field(None, description="父回复ID，用于嵌套回复")
 
 
-class ForumReplyCreate(ForumReplyBase):
-    """创建论坛回复"""
+class PostReplyCreate(PostReplyBase):
+    """帖子回复创建模型"""
     pass
 
 
-class ForumReplyUpdate(BaseModel):
-    """更新论坛回复"""
+class PostReplyUpdate(BaseModel):
+    """帖子回复更新模型"""
     content: Optional[str] = Field(None, min_length=1)
 
 
-class ForumReplyRead(ForumReplyBase):
-    """论坛回复读取模型"""
-    id: int
-    author_id: int
-    likes_count: int = 0
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = {
-        "from_attributes": True
-    }
+class PostReply(IDModel, TimestampModel, PostReplyBase):
+    """帖子回复完整模型"""
+    class Config(IDModel.Config):
+        from_attributes = True
 
 
-class ForumReplyDetail(ForumReplyRead):
-    """论坛回复详情"""
-    author_username: Optional[str] = None
-    author_avatar: Optional[str] = None
-    is_liked_by_user: Optional[bool] = None
-    child_replies: List['ForumReplyDetail'] = []
+# ============ 点赞 (Like) ============
+class LikeBase(BaseModel):
+    """点赞基础模型"""
+    user_id: UUID = Field(..., description="点赞用户ID")
+    post_id: Optional[UUID] = Field(None, description="被点赞的帖子ID")
+    reply_id: Optional[UUID] = Field(None, description="被点赞的回复ID")
 
 
-class ForumLikeBase(BaseModel):
-    """论坛点赞基础模型"""
-    user_id: int = Field(..., description="用户ID")
-    post_id: Optional[int] = Field(None, description="帖子ID")
-    reply_id: Optional[int] = Field(None, description="回复ID")
-
-
-class ForumLikeCreate(ForumLikeBase):
-    """创建论坛点赞"""
+class LikeCreate(LikeBase):
+    """点赞创建模型"""
     pass
 
 
-class ForumLikeRead(ForumLikeBase):
-    """论坛点赞读取模型"""
-    id: int
-    created_at: datetime
-
-    model_config = {
-        "from_attributes": True
-    }
+class Like(IDModel, TimestampModel, LikeBase):
+    """点赞完整模型"""
+    class Config(IDModel.Config):
+        from_attributes = True
 
 
-class ForumReplyLikeBase(BaseModel):
-    """论坛回复点赞基础模型"""
-    reply_id: int = Field(..., description="回复ID")
-    user_id: int = Field(..., description="用户ID")
+# ============ 复合响应模型 ============
+class ForumPostDetail(ForumPost):
+    """论坛帖子详情模型（包含作者信息）"""
+    author_name: Optional[str] = Field(None, description="作者姓名")
+    author_avatar: Optional[str] = Field(None, description="作者头像")
+    reply_count: int = Field(0, description="回复数量")
+    like_count: int = Field(0, description="点赞数量")
 
 
-class ForumReplyLikeCreate(ForumReplyLikeBase):
-    """创建论坛回复点赞"""
-    pass
-
-
-class ForumReplyLikeRead(ForumReplyLikeBase):
-    """论坛回复点赞读取模型"""
-    id: int
-    created_at: datetime
-
-    model_config = {
-        "from_attributes": True
-    }
+class ForumReplyDetail(PostReply):
+    """帖子回复详情模型（包含作者信息）"""
+    author_name: Optional[str] = Field(None, description="作者姓名")
+    author_avatar: Optional[str] = Field(None, description="作者头像")
+    like_count: int = Field(0, description="点赞数量")
 
 
 class ForumPostListResponse(BaseModel):
     """论坛帖子列表响应"""
-    posts: List[ForumPostDetail]
-    total: int
-    has_next: bool
+    posts: List[ForumPostDetail] = Field(default_factory=list, description="帖子列表")
+    total: int = Field(0, description="总数量")
+    page: int = Field(1, description="当前页")
+    page_size: int = Field(10, description="每页数量")
 
 
 class ForumReplyListResponse(BaseModel):
-    """论坛回复列表响应"""
-    replies: List[ForumReplyDetail]
-    total: int
-    has_next: bool
-
-
-class ForumCategoryStats(BaseModel):
-    """论坛分类统计"""
-    category: str
-    post_count: int
-    reply_count: int
-    last_activity: Optional[datetime] = None
+    """帖子回复列表响应"""
+    replies: List[ForumReplyDetail] = Field(default_factory=list, description="回复列表")
+    total: int = Field(0, description="总数量")
+    page: int = Field(1, description="当前页")
+    page_size: int = Field(10, description="每页数量")

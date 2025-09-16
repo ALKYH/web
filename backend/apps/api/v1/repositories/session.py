@@ -3,18 +3,19 @@
 """
 from typing import Optional, List, Dict
 from datetime import datetime
+from uuid import UUID
 
-from apps.schemas.session import SessionCreate, SessionUpdate
+from apps.schemas.mentorship import SessionCreate, SessionUpdate
 from libs.database.adapters import DatabaseAdapter
 
 TABLE_NAME = "sessions"
 
-async def get_by_id(db: DatabaseAdapter, session_id: int) -> Optional[Dict]:
+async def get_by_id(db: DatabaseAdapter, session_id: UUID) -> Optional[Dict]:
     """根据ID获取会话"""
     query = f"SELECT * FROM {TABLE_NAME} WHERE id = $1"
     return await db.fetch_one(query, session_id)
 
-async def get_by_user(db: DatabaseAdapter, user_id: int, limit: int = 20, offset: int = 0) -> List[Dict]:
+async def get_by_user(db: DatabaseAdapter, user_id: UUID, limit: int = 20, offset: int = 0) -> List[Dict]:
     """获取用户的会话列表"""
     query = f"""
         SELECT * FROM {TABLE_NAME} 
@@ -43,7 +44,7 @@ async def create(db: DatabaseAdapter, session_in: SessionCreate) -> Optional[Dic
     
     return await db.fetch_one(query, *create_data.values())
 
-async def update(db: DatabaseAdapter, session_id: int, session_in: SessionUpdate) -> Optional[Dict]:
+async def update(db: DatabaseAdapter, session_id: UUID, session_in: SessionUpdate) -> Optional[Dict]:
     """更新会话"""
     update_data = session_in.model_dump(exclude_unset=True)
     if not update_data:
@@ -63,7 +64,7 @@ async def update(db: DatabaseAdapter, session_id: int, session_in: SessionUpdate
     
     return await db.fetch_one(query, session_id, *update_data.values())
 
-async def delete(db: DatabaseAdapter, session_id: int) -> bool:
+async def delete(db: DatabaseAdapter, session_id: UUID) -> bool:
     """删除会话"""
     query = f"DELETE FROM {TABLE_NAME} WHERE id = $1"
     result = await db.execute(query, session_id)

@@ -3,6 +3,7 @@
 """
 from typing import Optional, Dict, List
 from datetime import datetime
+from uuid import UUID
 from fastapi import HTTPException, status
 
 from apps.schemas.matching import MatchingRequest, MatchingFilter, RecommendationRequest
@@ -10,7 +11,7 @@ from apps.api.v1.repositories import matching as matching_repo
 from libs.database.adapters import DatabaseAdapter
 
 
-async def recommend_mentors(db: DatabaseAdapter, user_id: int, request: MatchingRequest) -> Dict:
+async def recommend_mentors(db: DatabaseAdapter, user_id: UUID, request: MatchingRequest) -> Dict:
     """
     基于需求推荐指导者的业务逻辑
     1. 创建匹配请求
@@ -78,7 +79,7 @@ async def filter_mentors(db: DatabaseAdapter, filters: MatchingFilter, limit: in
         )
 
 
-async def get_matching_history(db: DatabaseAdapter, user_id: int, limit: int = 20) -> List[Dict]:
+async def get_matching_history(db: DatabaseAdapter, user_id: UUID, limit: int = 20) -> List[Dict]:
     """
     获取匹配历史的业务逻辑
     """
@@ -92,7 +93,7 @@ async def get_matching_history(db: DatabaseAdapter, user_id: int, limit: int = 2
         )
 
 
-async def get_contextual_recommendations(db: DatabaseAdapter, request: RecommendationRequest, user_id: int) -> Dict:
+async def get_contextual_recommendations(db: DatabaseAdapter, request: RecommendationRequest, user_id: UUID) -> Dict:
     """
     上下文推荐的业务逻辑
     """
@@ -130,7 +131,7 @@ async def get_popular_mentors(db: DatabaseAdapter, limit: int = 20, exclude_ids:
         )
 
 
-async def get_similar_background_mentors(db: DatabaseAdapter, user_id: int, limit: int = 10, exclude_ids: Optional[List[int]] = None) -> List[Dict]:
+async def get_similar_background_mentors(db: DatabaseAdapter, user_id: UUID, limit: int = 10, exclude_ids: Optional[List[int]] = None) -> List[Dict]:
     """
     相似背景推荐的业务逻辑
     """

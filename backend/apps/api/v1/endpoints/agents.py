@@ -1,6 +1,6 @@
 """
-PeerPortal AI智能体系统v2.0 API路由
-专注于留学规划和咨询的智能体服务
+AI智能体系统相关的 API 路由
+包括留学规划和咨询的智能体服务
 """
 import logging
 from typing import Dict, Any, Optional, List
@@ -43,7 +43,7 @@ class ChatResponse(BaseModel):
     """智能体对话响应"""
     response: str = Field(..., description="智能体回复")
     agent_type: str = Field(..., description="智能体类型")
-    version: str = Field("2.0", description="API版本")
+    version: str = Field("1.0", description="API版本")
     user_id: str = Field(..., description="用户ID")
     session_id: Optional[str] = Field(None, description="会话ID")
 
@@ -66,7 +66,7 @@ class ArchitectureInfoResponse(BaseModel):
 
 # 依赖注入：检查系统状�?
 async def verify_system_ready():
-    """验证v2.0系统是否就绪"""
+    """验证系统是否就绪"""
     if not config_manager.is_initialized:
         raise HTTPException(
             status_code=503,
@@ -124,8 +124,8 @@ async def check_user_credits(db: DatabaseAdapter, user_id: int) -> bool:
 @router.get("/status", response_model=SystemStatusResponse, summary="获取系统状态")
 async def get_system_status():
     """
-    获取v2.0智能体系统的运行状态
-    
+    获取智能体系统的运行状态
+
     返回系统初始化状态、可用服务等信息
     """
     try:
@@ -145,8 +145,8 @@ async def get_system_status():
 @router.get("/info", response_model=ArchitectureInfoResponse, summary="获取架构信息")
 async def get_system_info():
     """
-    获取v2.0智能体系统的架构信息
-    
+    获取智能体系统的架构信息
+
     返回系统版本、支持的智能体类型、功能模块等详细信息
     """
     try:
@@ -330,8 +330,8 @@ async def chat_with_auto_agent(
         async def sse_emitter():
             try:
                 # 握手事件
-                yield f"event: meta\n" \
-                      f"data: {\"agent_type\": \"{auto_request.agent_type}\", \"session_id\": \"{session_id}\"}\n\n"
+                yield (f"event: meta\n"
+                       f"data: {{\"agent_type\": \"{auto_request.agent_type}\", \"session_id\": \"{session_id}\"}}\n\n")
 
                 # 根据智能体类型设置系统提示
                 system_prompt = "你是一个有用的AI助手。"
@@ -385,7 +385,7 @@ async def health_check():
         status = config_manager.get_config_status()
         return {
             "status": "healthy" if status['is_initialized'] else "initializing",
-            "system": "PeerPortal AI智能体系统v2.0",
+            "system": "PeerPortal AI智能体系统",
             "focus": "留学规划与咨询",
             "agents": ["study_planner", "study_consultant"],
             "timestamp": "2024-07-26"

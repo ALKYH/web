@@ -1,127 +1,102 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
+"""
+会话中心 - 数据模型
+"""
 from datetime import datetime
-from decimal import Decimal
+from typing import Optional
+from uuid import UUID
+from enum import Enum
 
+from pydantic import BaseModel, Field
+
+from .common import IDModel, TimestampModel
+
+
+# ============ 会话状态枚举 ============
+class SessionStatus(str, Enum):
+    """会话状态"""
+    SCHEDULED = "scheduled"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+# ============ 会话模型 ============
 class SessionBase(BaseModel):
-    """指导会话基础模型 - 匹配 mentorship_sessions 表"""
-    session_number: int = Field(..., description="会话编号")
+    """会话基础模型"""
+
+    mentorship_id: UUID = Field(..., description="所属导师关系ID")
     scheduled_at: datetime = Field(..., description="预定时间")
-    duration_minutes: Optional[int] = Field(None, ge=30, le=180, description="持续时间（分钟）")
-    agenda: Optional[str] = Field(None, description="议程")
-    status: Optional[str] = Field(default="scheduled", description="状态")
+    duration_minutes: int = Field(60, ge=15, description="持续时间（分钟）")
+    status: SessionStatus = Field(SessionStatus.SCHEDULED, description="会话状态")
+    mentor_notes: Optional[str] = Field(None, description="导师笔记")
+    mentee_notes: Optional[str] = Field(None, description="学员笔记")
+
 
 class SessionCreate(SessionBase):
-    """创建指导会话"""
-    relationship_id: Optional[int] = Field(None, description="指导关系ID")
-    actual_start_at: Optional[datetime] = None
-    actual_end_at: Optional[datetime] = None
-    mentor_notes: Optional[str] = None
-    mentee_notes: Optional[str] = None
-    key_topics: Optional[List[str]] = Field(default=[], description="关键主题")  # ARRAY 类型
-    homework_assigned: Optional[str] = None
-    resources_shared: Optional[List[str]] = Field(default=[], description="共享资源")  # ARRAY 类型
-    next_session_plan: Optional[str] = None
-    cancellation_reason: Optional[str] = None
-    rescheduled_from: Optional[datetime] = None
-    mentor_satisfaction: Optional[int] = None
-    mentee_satisfaction: Optional[int] = None
-    mentor_feedback: Optional[str] = None
-    mentee_feedback: Optional[str] = None
-    progress_percentage: Optional[int] = Field(default=0)
-    milestones_achieved: Optional[List[str]] = Field(default=[], description="达成的里程碑")  # ARRAY 类型
+    """会话创建模型"""
+    pass
+
+
+class SessionRead(Session):
+    """会话读取模型"""
+    pass
+
 
 class SessionUpdate(BaseModel):
-    """更新指导会话"""
-    scheduled_at: Optional[datetime] = None
-    duration_minutes: Optional[int] = None
-    agenda: Optional[str] = None
-    status: Optional[str] = None
-    actual_start_at: Optional[datetime] = None
-    actual_end_at: Optional[datetime] = None
-    mentor_notes: Optional[str] = None
-    mentee_notes: Optional[str] = None
-    key_topics: Optional[List[str]] = None
-    homework_assigned: Optional[str] = None
-    resources_shared: Optional[List[str]] = None
-    next_session_plan: Optional[str] = None
-    cancellation_reason: Optional[str] = None
-    rescheduled_from: Optional[datetime] = None
-    mentor_satisfaction: Optional[int] = None
-    mentee_satisfaction: Optional[int] = None
-    mentor_feedback: Optional[str] = None
-    mentee_feedback: Optional[str] = None
-    progress_percentage: Optional[int] = None
-    milestones_achieved: Optional[List[str]] = None
+    """会话更新模型"""
 
-class SessionRead(SessionBase):
-    """指导会话详情 - 匹配 mentorship_sessions 表"""
-    id: int
-    relationship_id: Optional[int] = None  # 可空
-    actual_start_at: Optional[datetime] = None
-    actual_end_at: Optional[datetime] = None
+    scheduled_at: Optional[datetime] = None
+    duration_minutes: Optional[int] = Field(None, ge=15)
+    status: Optional[SessionStatus] = None
     mentor_notes: Optional[str] = None
     mentee_notes: Optional[str] = None
-    key_topics: Optional[List[str]] = None  # ARRAY 类型
-    homework_assigned: Optional[str] = None
-    resources_shared: Optional[List[str]] = None  # ARRAY 类型
-    next_session_plan: Optional[str] = None
-    cancellation_reason: Optional[str] = None
-    rescheduled_from: Optional[datetime] = None
-    mentor_satisfaction: Optional[int] = None
-    mentee_satisfaction: Optional[int] = None
-    mentor_feedback: Optional[str] = None
-    mentee_feedback: Optional[str] = None
-    progress_percentage: Optional[int] = Field(default=0)
-    milestones_achieved: Optional[List[str]] = None  # ARRAY 类型
-    created_at: Optional[datetime] = None  # 可空
-    updated_at: Optional[datetime] = None  # 可空
-    
-    class Config:
+
+
+class Session(IDModel, TimestampModel, SessionBase):
+    """会话完整模型"""
+
+    class Config(IDModel.Config):
         from_attributes = True
 
-class SessionAttendance(BaseModel):
-    """会话出席管理"""
-    session_id: int
-    attended: bool = Field(..., description="是否出席")
-    late_minutes: Optional[int] = Field(None, ge=0, description="迟到分钟数")
-    early_leave_minutes: Optional[int] = Field(None, ge=0, description="早退分钟数")
-    attendance_notes: Optional[str] = Field(None, max_length=500, description="出席备注")
 
-class SessionMaterials(BaseModel):
-    """会话材料 - 扩展支持数据库 ARRAY 字段"""
-    session_id: int
-    material_type: str = Field(..., description="材料类型")
-    title: str = Field(..., max_length=200, description="材料标题")
-    content: Optional[str] = Field(None, description="材料内容")
-    file_url: Optional[str] = Field(None, description="文件链接")
-    uploaded_by: str = Field(..., description="上传者")
-    is_shared: bool = Field(default=True, description="是否共享")
+# ============ 会话统计模型 ============
+class SessionStats(BaseModel):
+    """会话统计信息"""
 
-class SessionProgress(BaseModel):
-    """会话进度 - 匹配数据库字段"""
-    session_id: int
-    goals_set: List[str] = Field(default=[], description="设定目标")
-    goals_achieved: List[str] = Field(default=[], description="已完成目标")
-    next_steps: List[str] = Field(default=[], description="下一步计划")
-    homework_assigned: Optional[str] = Field(None, description="布置的作业")
-    progress_percentage: Optional[int] = Field(default=0, ge=0, le=100, description="进度百分比")
+    total_sessions: int = Field(..., description="总会话数")
+    completed_sessions: int = Field(..., description="已完成会话数")
+    upcoming_sessions: int = Field(..., description="即将到来的会话数")
+    cancelled_sessions: int = Field(..., description="已取消会话数")
 
-class SessionFeedback(BaseModel):
-    """会话反馈 - 匹配数据库满意度字段"""
-    session_id: int
-    mentor_satisfaction: Optional[int] = Field(None, ge=1, le=5, description="导师满意度")
-    mentee_satisfaction: Optional[int] = Field(None, ge=1, le=5, description="学员满意度")
-    mentor_feedback: Optional[str] = Field(None, description="导师反馈")
-    mentee_feedback: Optional[str] = Field(None, description="学员反馈")
-    comments: Optional[str] = Field(None, description="文字评价")
-    improvement_suggestions: Optional[str] = Field(None, description="改进建议")
 
+# ============ 会话反馈模型 ============
+class SessionFeedbackBase(BaseModel):
+    """会话反馈基础模型"""
+
+    session_id: UUID = Field(..., description="会话ID")
+    rating: int = Field(..., ge=1, le=5, description="评分 (1-5)")
+    feedback: Optional[str] = Field(None, description="反馈内容")
+    is_mentor_feedback: bool = Field(True, description="是否为导师反馈")
+
+
+class SessionFeedbackCreate(SessionFeedbackBase):
+    """会话反馈创建模型"""
+    pass
+
+
+class SessionFeedback(SessionFeedbackBase, IDModel, TimestampModel):
+    """会话反馈完整模型"""
+
+    class Config(IDModel.Config):
+        from_attributes = True
+
+
+# ============ 会话总结模型 ============
 class SessionSummary(BaseModel):
-    """会话总结 - 匹配数据库字段"""
-    session_id: int
-    key_topics: List[str] = Field(default=[], description="关键主题")
-    milestones_achieved: List[str] = Field(default=[], description="达成的里程碑")
-    resources_shared: List[str] = Field(default=[], description="分享的资源")
-    next_session_plan: Optional[str] = Field(None, description="下次会话计划")
-    progress_percentage: Optional[int] = Field(default=0, description="进度百分比") 
+    """会话总结信息"""
+
+    session_id: UUID = Field(..., description="会话ID")
+    duration_actual: Optional[int] = Field(None, description="实际持续时间（分钟）")
+    topics_discussed: List[str] = Field(default_factory=list, description="讨论的话题")
+    key_takeaways: List[str] = Field(default_factory=list, description="关键收获")
+    next_steps: List[str] = Field(default_factory=list, description="后续行动")
+    summary: Optional[str] = Field(None, description="总结内容")

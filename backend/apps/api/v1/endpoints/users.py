@@ -1,12 +1,19 @@
 """
-用户相关的 API 路由
-包括用户资料管理等功能
+用户中心 - API 路由
+包括用户资料管理和认证相关功能
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status, HTTPException
+from typing import Optional
+from uuid import UUID
 
-from apps.schemas.user import UserRead, ProfileUpdate, ProfileRead
-from apps.api.v1.deps import AuthenticatedUser
-from apps.api.v1.deps import get_current_user, get_database
+from apps.schemas.user import (
+    User, UserCreate, UserUpdate, UserLogin,
+    Profile, ProfileUpdate
+)
+from apps.schemas.common import GeneralResponse
+from apps.api.v1.deps import (
+    AuthenticatedUser, get_current_user, get_database
+)
 from apps.api.v1.services import user as user_service
 from libs.database.adapters import DatabaseAdapter
 
@@ -15,133 +22,89 @@ router = APIRouter()
 
 @router.get(
     "/me",
-    response_model=ProfileRead,
-    summary="获取当前用户资料",
-    description="获取当前登录用户的完整资料信息"
+    response_model=GeneralResponse[User],
+    summary="获取当前用户信息",
+    description="获取当前登录用户的完整信息"
 )
-async def read_current_user_profile(
+async def read_current_user(
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: DatabaseAdapter = Depends(get_database)
-):
+) -> GeneralResponse[User]:
     """
-    获取当前用户的完整资料
-
-    包括基本信息和扩展资料
+    获取当前用户的完整信息
     """
-    profile = await user_service.get_user_profile(db=db, user_id=int(current_user.id))
+    user = await user_service.get_user_by_id(db=db, user_id=current_user.id)
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
 
-    return ProfileRead(
-        id=profile["profile_id"] or profile["id"],  # 如果没有profile记录，使用user的id
-        user_id=profile["user_id"] or profile["id"],  # 如果没有profile记录，使用user的id作为user_id
-        created_at=profile.get("profile_created_at") or profile["created_at"],  # 使用profile的创建时间，如果没有则使用user的
-        updated_at=profile.get("updated_at") or profile["created_at"],  # 如果没有profile记录，使用user的创建时间
-        full_name=profile.get("full_name"),
-        avatar_url=profile.get("avatar_url"),
-        bio=profile.get("bio"),
-        phone=profile.get("phone"),
-        location=profile.get("location"),
-        website=profile.get("website"),
-        birth_date=profile.get("birth_date")
-    )
+    return GeneralResponse(data=user)
 
 
 @router.put(
     "/me",
-    response_model=ProfileRead,
-    summary="更新当前用户资料",
-    description="更新当前登录用户的资料信息"
+    response_model=GeneralResponse[User],
+    summary="更新当前用户信息",
+    description="更新当前登录用户的基本信息"
+)
+async def update_current_user(
+    user_data: UserUpdate,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+    db: DatabaseAdapter = Depends(get_database)
+) -> GeneralResponse[User]:
+    """
+    更新当前用户的基本信息
+    """
+    updated_user = await user_service.update_user(
+        db=db,
+        user_id=current_user.id,
+        user_data=user_data
+    )
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+
+    return GeneralResponse(data=updated_user)
+
+
+@router.get(
+    "/profile",
+    response_model=GeneralResponse[Profile],
+    summary="获取当前用户画像",
+    description="获取当前登录用户的完整画像信息"
+)
+async def read_current_user_profile(
+    current_user: AuthenticatedUser = Depends(get_current_user),
+    db: DatabaseAdapter = Depends(get_database)
+) -> GeneralResponse[Profile]:
+    """
+    获取当前用户的完整画像信息
+    """
+    profile = await user_service.get_user_profile(db=db, user_id=current_user.id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="用户画像不存在")
+
+    return GeneralResponse(data=profile)
+
+
+@router.put(
+    "/profile",
+    response_model=GeneralResponse[Profile],
+    summary="更新当前用户画像",
+    description="更新当前登录用户的画像信息"
 )
 async def update_current_user_profile(
-    profile_in: ProfileUpdate,
+    profile_data: ProfileUpdate,
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: DatabaseAdapter = Depends(get_database)
-):
+) -> GeneralResponse[Profile]:
     """
-    更新当前用户的资料
-
-    可以更新以下信息：
-    - full_name: 真实姓名
-    - avatar_url: 头像链接
-    - bio: 个人简介
-    - phone: 联系电话
-    - location: 所在地区
-    - website: 个人网站
-    - birth_date: 生日
+    更新当前用户的画像信息
     """
-    profile = await user_service.update_user_profile(db=db, user_id=int(current_user.id), profile_in=profile_in)
-
-    return ProfileRead(
-        id=profile["profile_id"] or profile["id"],  # 如果没有profile记录，使用user的id
-        user_id=profile["user_id"] or profile["id"],  # 如果没有profile记录，使用user的id作为user_id
-        created_at=profile.get("profile_created_at") or profile["created_at"],  # 使用profile的创建时间，如果没有则使用user的
-        updated_at=profile.get("updated_at") or profile["created_at"],  # 如果没有profile记录，使用user的创建时间
-        full_name=profile.get("full_name"),
-        avatar_url=profile.get("avatar_url"),
-        bio=profile.get("bio"),
-        phone=profile.get("phone"),
-        location=profile.get("location"),
-        website=profile.get("website"),
-        birth_date=profile.get("birth_date")
+    updated_profile = await user_service.update_user_profile(
+        db=db,
+        user_id=current_user.id,
+        profile_data=profile_data
     )
+    if not updated_profile:
+        raise HTTPException(status_code=404, detail="用户画像不存在")
 
-
-@router.get(
-    "/me/basic",
-    response_model=UserRead,
-    summary="获取当前用户基本信息",
-    description="获取当前登录用户的基本账户信息"
-)
-async def read_current_user_basic(
-    current_user: AuthenticatedUser = Depends(get_current_user),
-    db: DatabaseAdapter = Depends(get_database)
-):
-    """
-    获取当前用户的基本信息
-    
-    仅包括基本的账户信息，不包括扩展资料
-    """
-    user = await user_service.get_user_basic_info(db=db, user_id=int(current_user.id))
-    
-    return UserRead(
-        id=user["id"],
-        username=user["username"],
-        email=user.get("email"),
-        role=user.get("role", "user"),
-        is_active=user.get("is_active", True),
-        created_at=user["created_at"]
-    )
-
-
-@router.get(
-    "/{user_id}/profile",
-    response_model=ProfileRead,
-    summary="获取指定用户的公开资料",
-    description="获取指定用户的公开资料信息"
-)
-async def read_user_profile(
-    user_id: int,
-    db: DatabaseAdapter = Depends(get_database)
-):
-    """
-    获取指定用户的公开资料
-
-    - **user_id**: 用户ID
-
-    返回该用户的公开资料信息
-    """
-    profile = await user_service.get_public_profile(db=db, user_id=user_id)
-
-    # 返回公开信息（敏感信息已在服务层隐藏）
-    return ProfileRead(
-        id=profile["profile_id"] or profile["id"],  # 如果没有profile记录，使用user的id
-        user_id=profile["user_id"] or profile["id"],  # 如果没有profile记录，使用user的id作为user_id
-        created_at=profile.get("profile_created_at") or profile["created_at"],  # 使用profile的创建时间，如果没有则使用user的
-        updated_at=profile.get("updated_at") or profile["created_at"],  # 如果没有profile记录，使用user的创建时间
-        full_name=profile.get("full_name"),
-        avatar_url=profile.get("avatar_url"),
-        bio=profile.get("bio"),
-        phone=profile.get("phone"),  # 已在服务层设为None
-        location=profile.get("location"),
-        website=profile.get("website"),
-        birth_date=profile.get("birth_date")  # 已在服务层设为None
-    )
+    return GeneralResponse(data=updated_profile)

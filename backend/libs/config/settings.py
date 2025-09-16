@@ -9,6 +9,7 @@ from typing import Optional
 from libs.config.database_config import DatabaseConfig
 from libs.config.ai_config import AIConfig
 from libs.config.security_config import SecurityConfig
+from libs.config.minio_config import MinIOConfig
 
 
 class Settings(BaseSettings):
@@ -37,6 +38,7 @@ class Settings(BaseSettings):
         object.__setattr__(self, 'database', DatabaseConfig())
         object.__setattr__(self, 'ai', AIConfig())
         object.__setattr__(self, 'security', SecurityConfig())
+        object.__setattr__(self, 'minio', MinIOConfig())
     
     @property
     def postgres_url(self) -> str:

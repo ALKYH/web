@@ -1,6 +1,5 @@
 """
 PeerPortal FastAPI应用入口
-重构后的简化版本，采用libs/app分离架构
 """
 try:
     from dotenv import load_dotenv
@@ -31,7 +30,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
-    description="重构后的留学双边信息平台API - 采用libs/app分离架构",
+    description="去中心化的留学双边信息平台API",
     lifespan=lifespan
 )
 
@@ -104,7 +103,7 @@ except Exception as e:
 # 注册AI智能体路由（使用v1前缀）
 try:
     from apps.api.v1.endpoints.agents import router as agents_router
-    app.include_router(agents_router, prefix="/api/v1/agents", tags=["AI智能体"])
+    app.include_router(agents_router, prefix="/api/v1/agents", tags=["智能体"])
     logger.info("✅ V1 AI智能体路由注册成功")
 except Exception as e:
     logger.warning(f"⚠️ V1 AI智能体路由注册失败: {e}")

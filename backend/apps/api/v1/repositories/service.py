@@ -1,94 +1,124 @@
 """
-服务相关的数据访问操作
+服务仓库层
+提供服务相关的数据访问操作
+统一管理所有服务相关的数据访问操作
 """
-from typing import Optional, List, Dict
+from typing import Optional, List
 from datetime import datetime
 
-from apps.schemas.service import ServiceCreate, ServiceUpdate
+from apps.schemas.mentorship import Service, ServiceCreate, ServiceUpdate
 from libs.database.adapters import DatabaseAdapter
 
-TABLE_NAME = "services"
 
-async def get_by_id(db: DatabaseAdapter, service_id: int) -> Optional[Dict]:
+# ============ 服务管理 ============
+
+async def get_by_id(db: DatabaseAdapter, service_id: int) -> Optional[Service]:
     """根据ID获取服务"""
-    query = f"SELECT * FROM {TABLE_NAME} WHERE id = $1"
-    return await db.fetch_one(query, service_id)
-
-async def get_by_navigator_id(db: DatabaseAdapter, navigator_id: int) -> List[Dict]:
-    """根据导师ID获取所有服务"""
-    query = f"SELECT * FROM {TABLE_NAME} WHERE navigator_id = $1 ORDER BY created_at DESC"
-    return await db.fetch_many(query, navigator_id)
-
-async def create(db: DatabaseAdapter, navigator_id: int, service_in: ServiceCreate) -> Optional[Dict]:
-    """为指定导师创建服务"""
-    
-    # 构建插入数据
-    create_data = service_in.model_dump()
-    create_data["navigator_id"] = navigator_id
-    create_data["status"] = "active"
-    
-    # 动态构建插入语句
-    columns = ", ".join(create_data.keys())
-    placeholders = ", ".join([f"${i+1}" for i in range(len(create_data))])
-    
-    query = f"""
-        INSERT INTO {TABLE_NAME} ({columns})
-        VALUES ({placeholders})
-        RETURNING *
+    query = """
+        SELECT id, mentor_id, skill_id, title, description, price,
+               duration_hours, is_active, created_at, updated_at
+        FROM services
+        WHERE id = $1
     """
-    
-    return await db.fetch_one(query, *create_data.values())
+    row = await db.fetch_one(query, service_id)
+    return Service(**row) if row else None
 
-async def update(db: DatabaseAdapter, service_id: int, service_in: ServiceUpdate) -> Optional[Dict]:
+
+async def get_by_mentor_id(db: DatabaseAdapter, mentor_id: int) -> List[Service]:
+    """根据导师ID获取所有服务"""
+    query = """
+        SELECT id, mentor_id, skill_id, title, description, price,
+               duration_hours, is_active, created_at, updated_at
+        FROM services
+        WHERE mentor_id = $1 AND is_active = true
+        ORDER BY created_at DESC
+    """
+    rows = await db.fetch_all(query, mentor_id)
+    return [Service(**row) for row in rows]
+
+async def create(db: DatabaseAdapter, mentor_id: int, service_in: ServiceCreate) -> Optional[Service]:
+    """为指定导师创建服务"""
+    query = """
+        INSERT INTO services (
+            mentor_id, skill_id, title, description, price,
+            duration_hours, is_active, created_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        RETURNING id, mentor_id, skill_id, title, description, price,
+                  duration_hours, is_active, created_at, updated_at
+    """
+
+    values = (
+        mentor_id, service_in.skill_id, service_in.title, service_in.description,
+        service_in.price, service_in.duration_hours, service_in.is_active
+    )
+
+    row = await db.fetch_one(query, *values)
+    return Service(**row) if row else None
+
+
+async def update(db: DatabaseAdapter, service_id: int, service_in: ServiceUpdate) -> Optional[Service]:
     """更新指定服务"""
     update_data = service_in.model_dump(exclude_unset=True)
     if not update_data:
         return await get_by_id(db, service_id)
-        
-    update_data["updated_at"] = datetime.now()
 
-    # 动态构建更新语句
     set_clause = ", ".join([f"{key} = ${i+2}" for i, key in enumerate(update_data.keys())])
-    
     query = f"""
-        UPDATE {TABLE_NAME}
-        SET {set_clause}
+        UPDATE services
+        SET {set_clause}, updated_at = NOW()
         WHERE id = $1
-        RETURNING *
+        RETURNING id, mentor_id, skill_id, title, description, price,
+                  duration_hours, is_active, created_at, updated_at
     """
-    
-    return await db.fetch_one(query, service_id, *update_data.values())
+
+    row = await db.fetch_one(query, service_id, *update_data.values())
+    return Service(**row) if row else None
+
 
 async def delete(db: DatabaseAdapter, service_id: int) -> bool:
     """删除指定服务"""
-    query = f"DELETE FROM {TABLE_NAME} WHERE id = $1"
+    query = "DELETE FROM services WHERE id = $1"
     result = await db.execute(query, service_id)
     return "DELETE 1" in result
 
+
 async def search(
     db: DatabaseAdapter,
-    category: Optional[str] = None,
+    mentor_id: Optional[int] = None,
+    skill_id: Optional[int] = None,
     search_query: Optional[str] = None,
+    is_active: bool = True,
     limit: int = 20,
     offset: int = 0
-) -> List[Dict]:
+) -> List[Service]:
     """搜索服务列表"""
-    # 基础查询
-    query = f"SELECT * FROM {TABLE_NAME} WHERE status = 'active'"
-    params = []
+    where_clauses = ["is_active = $1"]
+    params = [is_active]
 
-    # 分类筛选
-    if category:
-        query += f" AND category = ${len(params) + 1}"
-        params.append(category)
+    if mentor_id:
+        params.append(mentor_id)
+        where_clauses.append(f"mentor_id = ${len(params)}")
 
-    # 文本搜索
+    if skill_id:
+        params.append(skill_id)
+        where_clauses.append(f"skill_id = ${len(params)}")
+
     if search_query:
-        query += f" AND (title ILIKE ${len(params) + 1} OR description ILIKE ${len(params) + 1})"
         params.append(f"%{search_query}%")
+        where_clauses.append(f"(title ILIKE ${len(params)} OR description ILIKE ${len(params)})")
 
-    # 分页和排序
-    query += f" ORDER BY created_at DESC LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}"
+    where_clause = " AND ".join(where_clauses)
     params.extend([limit, offset])
 
-    return await db.fetch_many(query, *params)
+    query = f"""
+        SELECT id, mentor_id, skill_id, title, description, price,
+               duration_hours, is_active, created_at, updated_at
+        FROM services
+        WHERE {where_clause}
+        ORDER BY created_at DESC
+        LIMIT ${len(params) - 1} OFFSET ${len(params)}
+    """
+
+    rows = await db.fetch_all(query, *params[:-2], limit, offset)
+    return [Service(**row) for row in rows]

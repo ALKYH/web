@@ -1,176 +1,213 @@
 """
-导师系统服务层
-处理导师匹配、关系、会话、评价和交易的业务逻辑
+导师制 & 服务 - 服务层
+提供服务、导师关系、会话和评价的业务逻辑
 """
-from typing import List, Optional, Dict, Any
-from fastapi import HTTPException, status
+from typing import List, Optional
+from uuid import UUID
 
 from apps.schemas.mentorship import (
-    MentorMatchCreate, MentorshipRelationshipCreate, MentorshipSessionCreate,
-    MentorshipReviewCreate, MentorshipTransactionCreate, MentorshipDashboard,
-    MentorshipStats
+    Service, ServiceCreate, ServiceUpdate,
+    Mentorship, MentorshipCreate, MentorshipUpdate,
+    Session, SessionCreate, SessionUpdate,
+    Review, ReviewCreate, ReviewUpdate
 )
 from apps.api.v1.repositories import mentorship as mentorship_repo
-from apps.api.v1.repositories import user_reputation_stats as reputation_repo
 from libs.database.adapters import DatabaseAdapter
 
 
-async def create_mentor_match(db: DatabaseAdapter, match: MentorMatchCreate, creator_id: int) -> Dict:
-    """
-    创建导师匹配
-    """
-    # 检查权限（这里可以添加更复杂的权限检查）
-    if creator_id not in [match.mentor_id, match.mentee_id]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权创建此匹配"
-        )
+# ============ 服务管理 ============
 
-    result = await mentorship_repo.create_mentor_match(db, match)
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="创建导师匹配失败"
-        )
-
-    return result
-
-
-async def create_mentorship_relationship(db: DatabaseAdapter, relationship: MentorshipRelationshipCreate, creator_id: int) -> Dict:
-    """
-    创建导师关系
-    1. 验证权限
-    2. 创建关系
-    3. 更新统计信息
-    """
-    if creator_id not in [relationship.mentor_id, relationship.mentee_id]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权创建此关系"
-        )
-
-    result = await mentorship_repo.create_mentorship_relationship(db, relationship)
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="创建导师关系失败"
-        )
-
-    # 更新声誉统计
-    await reputation_repo.update_mentor_stats(db, relationship.mentor_id, relationship_completed=True)
-    await reputation_repo.update_mentee_stats(db, relationship.mentee_id, relationship_completed=True)
-
-    return result
-
-
-async def create_mentorship_session(db: DatabaseAdapter, session: MentorshipSessionCreate, creator_id: int) -> Dict:
-    """
-    创建导师会话
-    """
-    # 检查关系是否存在且用户有权限
-    relationship = await mentorship_repo.get_mentorship_relationship_by_id(db, session.relationship_id)
-    if not relationship:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="导师关系不存在"
-        )
-
-    if creator_id not in [relationship['mentor_id'], relationship['mentee_id']]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权为此关系创建会话"
-        )
-
-    result = await mentorship_repo.create_mentorship_session(db, session)
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="创建导师会话失败"
-        )
-
-    return result
-
-
-async def create_mentorship_review(db: DatabaseAdapter, review: MentorshipReviewCreate, reviewer_id: int) -> Dict:
-    """
-    创建导师评价
-    """
-    # 验证评价者权限
-    relationship = await mentorship_repo.get_mentorship_relationship_by_id(db, review.relationship_id)
-    if not relationship:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="导师关系不存在"
-        )
-
-    if reviewer_id not in [relationship['mentor_id'], relationship['mentee_id']]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权为此关系创建评价"
-        )
-
-    result = await mentorship_repo.create_mentorship_review(db, review)
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="创建评价失败"
-        )
-
-    # 更新声誉统计
-    if review.reviewer_role == 'mentor':
-        await reputation_repo.update_mentor_stats(db, reviewer_id)
-    else:
-        await reputation_repo.update_mentee_stats(db, reviewer_id)
-
-    return result
-
-
-async def process_mentorship_transaction(db: DatabaseAdapter, transaction: MentorshipTransactionCreate, creator_id: int) -> Dict:
-    """
-    处理导师交易
-    """
-    # 这里可以添加支付处理逻辑
-    result = await mentorship_repo.create_mentorship_transaction(db, transaction)
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="创建交易记录失败"
-        )
-
-    return result
-
-
-async def get_user_mentorship_dashboard(db: DatabaseAdapter, user_id: int) -> MentorshipDashboard:
-    """
-    获取用户的导师仪表板
-    """
-    stats = await mentorship_repo.get_user_mentorship_stats(db, user_id)
-
-    return MentorshipDashboard(
-        active_relationships=stats['as_mentor']['active_relationships'] + stats['as_mentee']['active_relationships'],
-        completed_relationships=stats['as_mentor']['completed_relationships'] + stats['as_mentee']['completed_relationships'],
-        total_sessions=stats['as_mentor']['total_sessions'] + stats['as_mentee']['total_sessions'],
-        completed_sessions=stats['as_mentor']['completed_sessions'] + stats['as_mentee']['total_sessions'],  # 简化
-        total_earnings=0,  # 这里需要从交易记录计算
-        average_rating=0,  # 这里需要从评价计算
-        next_session=None  # 这里需要从会话记录计算
+async def get_services(
+    db: DatabaseAdapter,
+    skill_id: Optional[UUID] = None,
+    mentor_id: Optional[UUID] = None,
+    page: int = 1,
+    page_size: int = 10
+) -> List[Service]:
+    """获取服务列表"""
+    return await mentorship_repo.get_services(
+        db=db,
+        skill_id=skill_id,
+        mentor_id=mentor_id,
+        page=page,
+        page_size=page_size
     )
 
 
-async def get_mentorship_stats(db: DatabaseAdapter, user_id: int) -> MentorshipStats:
-    """
-    获取用户的导师统计
-    """
-    stats = await mentorship_repo.get_user_mentorship_stats(db, user_id)
+async def get_service_by_id(db: DatabaseAdapter, service_id: UUID) -> Optional[Service]:
+    """根据ID获取服务"""
+    return await mentorship_repo.get_service_by_id(db, service_id)
 
-    return MentorshipStats(
-        total_relationships=stats['as_mentor']['total_relationships'] + stats['as_mentee']['total_relationships'],
-        active_relationships=stats['as_mentor']['active_relationships'] + stats['as_mentee']['active_relationships'],
-        completed_relationships=stats['as_mentor']['completed_relationships'] + stats['as_mentee']['completed_relationships'],
-        total_sessions=stats['as_mentor']['total_sessions'] + stats['as_mentee']['total_sessions'],
-        completed_sessions=stats['as_mentor']['completed_sessions'],  # 简化
-        total_hours=stats['as_mentor']['total_hours'] + stats['as_mentee']['total_hours'],
-        average_rating=0,  # 需要计算
-        total_earnings=0,  # 需要计算
-        success_rate=0  # 需要计算
+
+async def create_service(
+    db: DatabaseAdapter,
+    user_id: UUID,
+    service_data: ServiceCreate
+) -> Optional[Service]:
+    """创建服务"""
+    return await mentorship_repo.create_service(
+        db=db,
+        user_id=user_id,
+        service_data=service_data
     )
+
+
+async def update_service(
+    db: DatabaseAdapter,
+    service_id: UUID,
+    user_id: UUID,
+    service_data: ServiceUpdate
+) -> Optional[Service]:
+    """更新服务"""
+    return await mentorship_repo.update_service(
+        db=db,
+        service_id=service_id,
+        user_id=user_id,
+        service_data=service_data
+    )
+
+
+async def delete_service(db: DatabaseAdapter, service_id: UUID, user_id: UUID) -> bool:
+    """删除服务"""
+    return await mentorship_repo.delete_service(db, service_id, user_id)
+
+
+async def get_services_by_mentor(db: DatabaseAdapter, mentor_id: UUID) -> List[Service]:
+    """获取导师的服务列表"""
+    return await mentorship_repo.get_services_by_mentor(db, mentor_id)
+
+
+# ============ 导师关系管理 ============
+
+async def create_mentorship(
+    db: DatabaseAdapter,
+    mentorship_data: MentorshipCreate
+) -> Optional[Mentorship]:
+    """创建导师关系"""
+    return await mentorship_repo.create_mentorship(db, mentorship_data)
+
+
+async def get_mentorship(
+    db: DatabaseAdapter,
+    mentorship_id: UUID,
+    user_id: UUID
+) -> Optional[Mentorship]:
+    """获取导师关系"""
+    return await mentorship_repo.get_mentorship(db, mentorship_id, user_id)
+
+
+async def update_mentorship(
+    db: DatabaseAdapter,
+    mentorship_id: UUID,
+    user_id: UUID,
+    mentorship_data: MentorshipUpdate
+) -> Optional[Mentorship]:
+    """更新导师关系"""
+    return await mentorship_repo.update_mentorship(
+        db=db,
+        mentorship_id=mentorship_id,
+        user_id=user_id,
+        mentorship_data=mentorship_data
+    )
+
+
+async def get_mentorships_by_user(
+    db: DatabaseAdapter,
+    user_id: UUID,
+    role: str = "all"  # "mentor", "mentee", "all"
+) -> List[Mentorship]:
+    """获取用户的导师关系列表"""
+    return await mentorship_repo.get_mentorships_by_user(db, user_id, role)
+
+
+# ============ 会话管理 ============
+
+async def create_session(
+    db: DatabaseAdapter,
+    session_data: SessionCreate,
+    user_id: UUID
+) -> Optional[Session]:
+    """创建会话"""
+    return await mentorship_repo.create_session(
+        db=db,
+        session_data=session_data,
+        user_id=user_id
+    )
+
+
+async def get_session(
+    db: DatabaseAdapter,
+    session_id: UUID,
+    user_id: UUID
+) -> Optional[Session]:
+    """获取会话"""
+    return await mentorship_repo.get_session(db, session_id, user_id)
+
+
+async def update_session(
+    db: DatabaseAdapter,
+    session_id: UUID,
+    user_id: UUID,
+    session_data: SessionUpdate
+) -> Optional[Session]:
+    """更新会话"""
+    return await mentorship_repo.update_session(
+        db=db,
+        session_id=session_id,
+        user_id=user_id,
+        session_data=session_data
+    )
+
+
+async def get_sessions_by_mentorship(
+    db: DatabaseAdapter,
+    mentorship_id: UUID,
+    user_id: UUID
+) -> List[Session]:
+    """获取导师关系的会话列表"""
+    return await mentorship_repo.get_sessions_by_mentorship(
+        db, mentorship_id, user_id
+    )
+
+
+# ============ 评价管理 ============
+
+async def create_review(
+    db: DatabaseAdapter,
+    review_data: ReviewCreate,
+    reviewer_id: UUID
+) -> Optional[Review]:
+    """创建评价"""
+    return await mentorship_repo.create_review(
+        db=db,
+        review_data=review_data,
+        reviewer_id=reviewer_id
+    )
+
+
+async def get_review_by_id(db: DatabaseAdapter, review_id: UUID) -> Optional[Review]:
+    """根据ID获取评价"""
+    return await mentorship_repo.get_review_by_id(db, review_id)
+
+
+async def update_review(
+    db: DatabaseAdapter,
+    review_id: UUID,
+    reviewer_id: UUID,
+    review_data: ReviewUpdate
+) -> Optional[Review]:
+    """更新评价"""
+    return await mentorship_repo.update_review(
+        db=db,
+        review_id=review_id,
+        reviewer_id=reviewer_id,
+        review_data=review_data
+    )
+
+
+async def get_reviews_by_mentorship(
+    db: DatabaseAdapter,
+    mentorship_id: UUID
+) -> List[Review]:
+    """获取导师关系的所有评价"""
+    return await mentorship_repo.get_reviews_by_mentorship(db, mentorship_id)

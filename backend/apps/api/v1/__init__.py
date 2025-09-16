@@ -15,20 +15,22 @@ def create_v1_router() -> APIRouter:
         print(f"Warning: Could not import auth/users routes: {e}")
     
     try:
-        from .endpoints import mentors, students, services
-        v1_router.include_router(mentors.router, prefix="/mentors", tags=["导师"])
-        v1_router.include_router(students.router, prefix="/students", tags=["学生"])
+        from .endpoints import services
         v1_router.include_router(services.router, prefix="/services", tags=["服务"])
     except ImportError as e:
-        print(f"Warning: Could not import mentor/student/service routes: {e}")
+        print(f"Warning: Could not import service routes: {e}")
     
     try:
-        from .endpoints import sessions, messages, files, matchings
+        from .endpoints import sessions, messages, files, matchings, communication, forum, skills, transactions
         v1_router.include_router(sessions.router, prefix="/sessions", tags=["会话"])
         v1_router.include_router(messages.router, prefix="/messages", tags=["消息"])
         v1_router.include_router(files.router, prefix="/files", tags=["文件"])
         v1_router.include_router(matchings.router, prefix="/matching", tags=["匹配"])
+        v1_router.include_router(communication.router, prefix="/communication", tags=["通信"])
+        v1_router.include_router(forum.router, prefix="/forum", tags=["论坛"])
+        v1_router.include_router(skills.router, prefix="/skills", tags=["技能"])
+        v1_router.include_router(transactions.router, prefix="/transactions", tags=["交易"])
     except ImportError as e:
-        print(f"Warning: Could not import session/message/file/matching routes: {e}")
+        print(f"Warning: Could not import routes: {e}")
     
     return v1_router
