@@ -13,7 +13,7 @@ from apps.api.v1.deps import (
 )
 from libs.database.adapters import DatabaseAdapter
 from apps.schemas.mentor import (
-    MentorCreate, MentorUpdate, MentorProfile, MentorPublic
+    MentorProfileCreate, MentorProfileUpdate, MentorProfileRead, MentorPublic
 )
 from apps.api.v1.services import mentor as mentor_service
 
@@ -22,12 +22,12 @@ router = APIRouter()
 
 @router.post(
     "/profile",
-    response_model=MentorProfile,
+    response_model=MentorProfileRead,
     summary="注册成为指导者",
     description="用户注册成为指导者"
 )
 async def create_mentor_profile(
-    mentor_data: MentorCreate,
+    mentor_data: MentorProfileCreate,
     db: DatabaseAdapter = Depends(get_database),
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
@@ -37,7 +37,7 @@ async def create_mentor_profile(
 
 @router.get(
     "/profile",
-    response_model=MentorProfile,
+    response_model=MentorProfileRead,
     summary="获取指导者资料",
     description="获取当前用户的指导者资料"
 )
@@ -51,12 +51,12 @@ async def get_mentor_profile(
 
 @router.put(
     "/profile",
-    response_model=MentorProfile,
+    response_model=MentorProfileRead,
     summary="更新指导者资料",
     description="更新当前用户的指导者资料"
 )
 async def update_mentor_profile(
-    mentor_data: MentorUpdate,
+    mentor_data: MentorProfileUpdate,
     db: DatabaseAdapter = Depends(get_database),
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):

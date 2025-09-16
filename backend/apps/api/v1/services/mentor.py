@@ -5,12 +5,12 @@
 from typing import List, Dict, Optional
 from fastapi import HTTPException, status
 
-from apps.schemas.mentor import MentorCreate, MentorUpdate
+from apps.schemas.mentor import MentorProfileCreate, MentorProfileUpdate
 from apps.api.v1.repositories import mentor as mentor_repo
 from libs.database.adapters import DatabaseAdapter
 
 
-async def create_mentor_profile(db: DatabaseAdapter, user_id: int, mentor_data: MentorCreate) -> Dict:
+async def create_mentor_profile(db: DatabaseAdapter, user_id: int, mentor_data: MentorProfileCreate) -> Dict:
     """
     创建指导者资料的业务逻辑
     1. 检查用户是否已经是指导者
@@ -46,7 +46,7 @@ async def get_mentor_profile(db: DatabaseAdapter, user_id: int) -> Dict:
     return mentor
 
 
-async def update_mentor_profile(db: DatabaseAdapter, user_id: int, mentor_data: MentorUpdate) -> Dict:
+async def update_mentor_profile(db: DatabaseAdapter, user_id: int, mentor_data: MentorProfileUpdate) -> Dict:
     """更新指导者资料"""
     mentor = await mentor_repo.update_mentor_profile(db, user_id, mentor_data)
     if not mentor:

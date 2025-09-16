@@ -59,20 +59,35 @@ async def mark_as_read(db: DatabaseAdapter, message_id: int, user_id: int) -> bo
     result = await db.execute(query, message_id, user_id)
     return "UPDATE 1" in result
 
+async def get_messages_by_user(
+    db: DatabaseAdapter,
+    user_id: int,
+    limit: int = 20,
+    offset: int = 0
+) -> List[Dict]:
+    """获取用户的消息列表"""
+    query = f"""
+        SELECT * FROM {TABLE_NAME}
+        WHERE sender_id = $1 OR recipient_id = $1
+        ORDER BY created_at DESC
+        LIMIT $2 OFFSET $3
+    """
+    return await db.fetch_many(query, user_id, limit, offset)
+
 async def get_conversations_by_user(
-    db: DatabaseAdapter, 
-    user_id: int, 
+    db: DatabaseAdapter,
+    user_id: int,
     limit: int = 20
 ) -> List[Dict]:
     """获取用户的对话列表"""
     query = f"""
-        SELECT DISTINCT conversation_id, 
+        SELECT DISTINCT conversation_id,
                MAX(created_at) as last_message_time,
                COUNT(*) as message_count
-        FROM {TABLE_NAME} 
+        FROM {TABLE_NAME}
         WHERE sender_id = $1 OR recipient_id = $1
-        GROUP BY conversation_id 
-        ORDER BY last_message_time DESC 
+        GROUP BY conversation_id
+        ORDER BY last_message_time DESC
         LIMIT $2
     """
     return await db.fetch_many(query, user_id, limit)

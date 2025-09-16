@@ -4,7 +4,7 @@
 from typing import Optional, List, Dict
 from datetime import datetime
 
-from apps.schemas.mentor import MentorCreate, MentorUpdate
+from apps.schemas.mentor import MentorProfileCreate, MentorProfileUpdate
 from libs.database.adapters import DatabaseAdapter
 
 TABLE_NAME = "mentor_profiles"
@@ -19,7 +19,7 @@ async def get_profile_by_id(db: DatabaseAdapter, profile_id: int) -> Optional[Di
     query = f"SELECT * FROM {TABLE_NAME} WHERE id = $1"
     return await db.fetch_one(query, profile_id)
 
-async def create_profile(db: DatabaseAdapter, user_id: int, profile_in: MentorCreate) -> Optional[Dict]:
+async def create_profile(db: DatabaseAdapter, user_id: int, profile_in: MentorProfileCreate) -> Optional[Dict]:
     """为指定用户创建导师档案"""
     
     # 构建插入数据
@@ -41,7 +41,7 @@ async def create_profile(db: DatabaseAdapter, user_id: int, profile_in: MentorCr
     
     return await db.fetch_one(query, *create_data.values())
 
-async def update_profile(db: DatabaseAdapter, user_id: int, profile_in: MentorUpdate) -> Optional[Dict]:
+async def update_profile(db: DatabaseAdapter, user_id: int, profile_in: MentorProfileUpdate) -> Optional[Dict]:
     """更新指定用户的导师档案"""
     update_data = profile_in.model_dump(exclude_unset=True)
     if not update_data:

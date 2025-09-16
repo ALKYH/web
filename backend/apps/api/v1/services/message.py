@@ -13,7 +13,7 @@ from libs.database.adapters import DatabaseAdapter
 async def get_messages(db: DatabaseAdapter, user_id: int, limit: int, offset: int) -> List[Dict]:
     """获取用户消息列表"""
     try:
-        messages = await message_repo.get_messages(db, user_id, limit, offset)
+        messages = await message_repo.get_messages_by_user(db, user_id, limit, offset)
         return messages
     except Exception as e:
         raise HTTPException(
@@ -24,7 +24,7 @@ async def get_messages(db: DatabaseAdapter, user_id: int, limit: int, offset: in
 
 async def send_message(db: DatabaseAdapter, user_id: int, message_data: MessageCreate) -> Dict:
     """发送消息"""
-    message = await message_repo.create_message(db, user_id, message_data)
+    message = await message_repo.create(db, message_data)
     if not message:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -36,7 +36,7 @@ async def send_message(db: DatabaseAdapter, user_id: int, message_data: MessageC
 async def get_message_detail(db: DatabaseAdapter, message_id: int, user_id: int) -> Dict:
     """获取消息详情"""
     # 这里应该检查用户权限，确保只能查看自己相关的消息
-    message = await message_repo.get_message_by_id(db, message_id, user_id)
+    message = await message_repo.get_by_id(db, message_id)
     if not message:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -59,7 +59,7 @@ async def mark_message_as_read(db: DatabaseAdapter, message_id: int, user_id: in
 async def get_conversations(db: DatabaseAdapter, user_id: int, limit: int) -> List[Dict]:
     """获取用户对话列表"""
     try:
-        conversations = await message_repo.get_conversations(db, user_id, limit)
+        conversations = await message_repo.get_conversations_by_user(db, user_id, limit)
         return conversations
     except Exception as e:
         raise HTTPException(

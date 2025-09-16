@@ -50,6 +50,10 @@ class PostgreSQLAdapter(DatabaseAdapter):
     async def fetch_all(self, query: str, *args) -> List[Dict]:
         results = await self.connection.fetch(query, *args)
         return [dict(row) for row in results]
+
+    async def fetch_many(self, query: str, *args) -> List[Dict]:
+        """获取多条记录（fetch_all的别名）"""
+        return await self.fetch_all(query, *args)
     
     async def execute(self, query: str, *args) -> str:
         return await self.connection.execute(query, *args)

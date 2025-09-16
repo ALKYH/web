@@ -4,7 +4,8 @@ PeerPortal AI智能体系统v2.0 API路由
 """
 import logging
 from typing import Dict, Any, Optional, List
-from fastapi import APIRouter, HTTPException, Depends, Body
+from fastapi import APIRouter, HTTPException, Depends, Body, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from datetime import datetime
 import uuid
@@ -17,6 +18,7 @@ from libs.agents.v2 import (
     PlatformException
 )
 from libs.agents.v2.config import config_manager
+from libs.agents.v2.ai_foundation.llm.manager import llm_manager
 from apps.api.v1.deps import get_current_user, get_database, AuthenticatedUser
 from apps.api.v1.services import user_credit_logs as credit_service
 from apps.schemas.user_credit_logs import CreditTransaction
@@ -262,12 +264,24 @@ async def chat_with_consultant(
         logger.error(f"留学咨询师对话异常: {e}")
         raise HTTPException(status_code=500, detail="对话服务暂时不可用")
 
-@router.post("/chat", response_model=ChatResponse, summary="智能体自动选择对话")
+@router.post(
+    "/chat",
+    response_model=ChatResponse,
+    summary="智能体自动选择对话",
+    description="""
+    通用对话接口，后端根据 `agent_type` 自动路由到对应智能体。
+
+    - 默认返回一次性完整响应（JSON）。
+    - 传入 `stream=true` 时，返回 SSE 流式响应（`text/event-stream`）。
+    - 为了最小改动，流式模式当前以增量分块的方式推送已生成文本，后续可无缝替换为底层LLM的真实流式（`llm_manager.stream_chat`）。
+    """
+)
 async def chat_with_auto_agent(
     auto_request: AutoChatRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: DatabaseAdapter = Depends(get_database),
-    _: None = Depends(verify_system_ready)
+    _: None = Depends(verify_system_ready),
+    stream: bool = Query(False, description="是否启用SSE流式响应")
 ):
     """
     智能选择智能体进行对话
@@ -297,17 +311,57 @@ async def chat_with_auto_agent(
             )
 
         # 执行对话
-        response = await agent.execute(auto_request.request.message)
+        response_text = await agent.execute(auto_request.request.message)
 
         # 记录交互日志
-        await log_agent_interaction(db, user_id, auto_request.agent_type, auto_request.request.message, response, session_id)
+        await log_agent_interaction(db, user_id, auto_request.agent_type, auto_request.request.message, response_text, session_id)
 
-        return ChatResponse(
-            response=response,
-            agent_type=auto_request.agent_type,
-            user_id=str(user_id),
-            session_id=session_id
-        )
+        if not stream:
+            return ChatResponse(
+                response=response_text,
+                agent_type=auto_request.agent_type,
+                user_id=str(user_id),
+                session_id=session_id
+            )
+
+        # 流式响应（SSE）：对接底层 LLM 真流式输出
+        import asyncio
+
+        async def sse_emitter():
+            try:
+                # 握手事件
+                yield f"event: meta\n" \
+                      f"data: {\"agent_type\": \"{auto_request.agent_type}\", \"session_id\": \"{session_id}\"}\n\n"
+
+                # 根据智能体类型设置系统提示
+                system_prompt = "你是一个有用的AI助手。"
+                if auto_request.agent_type == "study_planner":
+                    system_prompt = "你是专业的留学规划师，回答要结构化、可执行。"
+                elif auto_request.agent_type == "study_consultant":
+                    system_prompt = "你是专业的留学咨询师，回答要准确、清晰、友好。"
+
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": auto_request.request.message}
+                ]
+
+                async for chunk in llm_manager.stream_chat(
+                    tenant_id=str(user_id),
+                    model_name="gpt-4o-mini",
+                    messages=messages,
+                    temperature=0.7
+                ):
+                    if getattr(chunk, 'delta', None):
+                        yield f"data: {chunk.delta}\n\n"
+                    elif getattr(chunk, 'content', None):
+                        yield f"data: {chunk.content}\n\n"
+
+                # 结束事件
+                yield "event: done\ndata: [DONE]\n\n"
+            except Exception as e:
+                yield f"event: error\ndata: {str(e)}\n\n"
+
+        return StreamingResponse(sse_emitter(), media_type="text/event-stream")
 
     except HTTPException:
         raise
@@ -321,21 +375,7 @@ async def chat_with_auto_agent(
         logger.error(f"智能体对话异常: {e}")
         raise HTTPException(status_code=500, detail="对话服务暂时不可用")
 
-# 兼容旧API的路由
-@router.post("/planner/invoke", response_model=ChatResponse, summary="留学规划师调用（兼容接口）")
-async def invoke_planner(
-    request: ChatRequest,
-    current_user: AuthenticatedUser = Depends(get_current_user),
-    db: DatabaseAdapter = Depends(get_database),
-    _: None = Depends(verify_system_ready)
-):
-    """
-    兼容旧版API的留学规划师调用接口
-
-    这是为了保持与前端现有代码的兼容性
-    """
-    # 直接调用新的接口，传入认证信息
-    return await chat_with_planner(request, current_user, db, _)
+# 兼容与别名接口已移除：/planner/invoke
 
 # 健康检查路由
 @router.get("/health", summary="智能体系统健康检查")

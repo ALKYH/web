@@ -80,7 +80,7 @@ async def mark_message_as_read(
 
 
 @router.get(
-    "/conversations",
+    "/conversations/list",
     response_model=List[ConversationListItem],
     summary="获取对话列表",
     description="获取用户的所有对话"

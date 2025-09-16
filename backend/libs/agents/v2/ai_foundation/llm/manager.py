@@ -149,11 +149,17 @@ class LLMManager:
             
             provider = self.providers[model_name]
             async for chunk in provider.stream_chat(messages, model=model_name, **kwargs):
+                # 兼容不同Provider的增量字段命名
+                content = getattr(chunk, "content", "")
+                delta = getattr(chunk, "delta", content)
+                finished = getattr(chunk, "finished", getattr(chunk, "is_complete", False))
+                usage = getattr(chunk, "usage", None)
+
                 yield StreamChunk(
-                    content=chunk.content,
-                    delta=chunk.delta,
-                    finished=chunk.finished,
-                    usage=chunk.usage
+                    content=content,
+                    delta=delta,
+                    finished=finished,
+                    usage=usage
                 )
                 
         except LLMException:

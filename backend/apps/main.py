@@ -101,13 +101,13 @@ try:
 except Exception as e:
     logger.error(f"❌ V1 API路由注册失败: {e}")
 
-# 注册AI智能体路由（保持兼容性）
+# 注册AI智能体路由（使用v1前缀）
 try:
-    from apps.api.v1.endpoints.agents import router as v2_agents_router
-    app.include_router(v2_agents_router, prefix="/api/v2/agents", tags=["AI智能体v2.0"])
-    logger.info("✅ V2 AI智能体路由注册成功")
+    from apps.api.v1.endpoints.agents import router as agents_router
+    app.include_router(agents_router, prefix="/api/v1/agents", tags=["AI智能体"])
+    logger.info("✅ V1 AI智能体路由注册成功")
 except Exception as e:
-    logger.warning(f"⚠️ V2 AI智能体路由注册失败: {e}")
+    logger.warning(f"⚠️ V1 AI智能体路由注册失败: {e}")
 
 # 静态文件服务(用于提供上传的文件)
 app.mount("/static", StaticFiles(directory="uploads"), name="static")

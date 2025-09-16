@@ -3,6 +3,22 @@ from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
 
+class MentorProfileBase(BaseModel):
+    """导师档案基础模型 - 匹配 mentor_profiles 表"""
+    title: str = Field(..., description="导师标题")
+    description: Optional[str] = Field(None, description="导师描述")
+    expertise: Optional[List[str]] = Field(default_factory=list, description="专业领域")
+    experience_years: Optional[int] = Field(None, description="经验年数")
+    education: Optional[str] = Field(None, description="学历")
+    current_position: Optional[str] = Field(None, description="当前职位")
+    company: Optional[str] = Field(None, description="公司")
+    hourly_rate: Optional[Decimal] = Field(None, ge=0, description="时薪")
+    languages: Optional[List[str]] = Field(default_factory=list, description="语言")
+    availability: Optional[str] = Field(None, description="可用性")
+    introduction: Optional[str] = Field(None, description="自我介绍")
+    status: str = Field(default="active", description="状态")
+    user_id: Optional[int] = Field(None, description="用户ID")
+
 class MentorBase(BaseModel):
     """指导者基础模型 - 匹配 mentorship_relationships """
     title: str = Field(..., description="指导关系标题")
@@ -59,6 +75,35 @@ class MentorUpdate(BaseModel):
     meeting_frequency: Optional[str] = None
     timezone: Optional[str] = None
     status: Optional[str] = None
+
+class MentorProfileCreate(MentorProfileBase):
+    """创建导师档案"""
+    pass
+
+class MentorProfileRead(MentorProfileBase):
+    """导师档案读取模型"""
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    sessions_completed: int = Field(default=0)
+    total_hours_spent: Decimal = Field(default=Decimal('0'))
+
+    class Config:
+        from_attributes = True
+
+class MentorProfileUpdate(BaseModel):
+    """更新导师档案"""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    expertise: Optional[List[str]] = None
+    experience_years: Optional[int] = None
+    education: Optional[str] = None
+    current_position: Optional[str] = None
+    company: Optional[str] = None
+    hourly_rate: Optional[Decimal] = None
+    languages: Optional[List[str]] = None
+    availability: Optional[str] = None
+    introduction: Optional[str] = None
 
 class MentorCreate(MentorBase):
     """创建指导者资料"""
