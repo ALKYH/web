@@ -8,7 +8,9 @@ except ImportError:
     pass
 
 import logging
-from fastapi import FastAPI, Request, status
+import uuid
+from datetime import datetime, timezone
+from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -83,13 +85,65 @@ async def global_exception_handler(request: Request, exc: Exception):
     """
     # 在生产环境中应使用专业的日志系统
     print(f"🚨 平台错误: {type(exc).__name__}: {exc}")
-    
+
+    # 生成请求ID
+    request_id = request.headers.get('X-Request-ID', str(uuid.uuid4()))
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
-            "detail": "服务器内部错误，请稍后重试",
-            "error_id": f"{hash(str(exc)) % 10000000000:010d}"  # 生成错误ID便于追踪
+            "success": False,
+            "code": 1000,
+            "message": "服务器内部错误，请稍后重试",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "request_id": request_id,
+            "path": str(request.url.path)
         },
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """处理HTTP异常"""
+    from libs.utils.response_utils import create_error_response, ErrorCode
+    from libs.exceptions import BaseAPIException
+
+    # 如果是自定义API异常，使用其错误码
+    if isinstance(exc, BaseAPIException):
+        error_response = create_error_response(
+            error_code=exc.error_code,
+            message=str(exc.detail),
+            details=exc.details if hasattr(exc, 'details') else None,
+            request_id=request.headers.get('X-Request-ID'),
+            path=str(request.url.path)
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=error_response.model_dump_json()
+        )
+
+    # 处理标准的HTTP异常
+    error_code_map = {
+        400: ErrorCode.PARAMETER_ERROR,
+        401: ErrorCode.UNAUTHORIZED,
+        403: ErrorCode.PERMISSION_DENIED,
+        404: ErrorCode.RESOURCE_NOT_FOUND,
+        422: ErrorCode.VALIDATION_ERROR,
+        429: ErrorCode.REQUEST_TOO_FREQUENT,
+    }
+
+    error_code = error_code_map.get(exc.status_code, ErrorCode.UNKNOWN_ERROR)
+
+    error_response = create_error_response(
+        error_code=error_code,
+        message=str(exc.detail),
+        request_id=request.headers.get('X-Request-ID'),
+        path=str(request.url.path)
+    )
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=error_response.model_dump_json()
     )
 
 # 注册V1 API路由
