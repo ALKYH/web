@@ -69,7 +69,7 @@ export function ClickableAvatar({
         : result.avatar_url;
 
       setCurrentSrc(newAvatarUrl);
-      onAvatarUpdate?.(result.avatar_url);
+      onAvatarUpdate?.(newAvatarUrl);
     } catch (error) {
       console.error('Avatar upload failed:', error);
       alert('头像上传失败，请重试');
@@ -92,8 +92,8 @@ export function ClickableAvatar({
         className={cn(
           sizeClasses[size],
           showUploadOverlay &&
-            onAvatarUpdate &&
-            'cursor-pointer hover:opacity-80 transition-opacity',
+          onAvatarUpdate &&
+          'cursor-pointer hover:opacity-80 transition-opacity',
           className
         )}
         onClick={handleAvatarClick}

@@ -16,20 +16,30 @@ interface RegisterRequest {
 }
 
 interface LoginResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
+  success: boolean;
+  code: number;
+  message: string;
+  data: {
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+  };
+  timestamp: string;
+  request_id: string;
 }
 
 interface User {
-  id: number;
+  id: string;
   username: string;
   email?: string;
   role: string;
-  is_active: boolean;
-  created_at: string;
-  full_name?: string;
-  avatar_url?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  fullName?: string;
+  avatarUrl?: string;
+  phone?: string;
+  passwordHash?: string;
   bio?: string;
 }
 
@@ -102,7 +112,8 @@ class ApiClient {
       throw new Error(error.detail || 'Failed to get user info');
     }
 
-    return response.json();
+    const apiResponse = await response.json();
+    return apiResponse.data; // Return only the user data from the data field
   }
 
   async refreshToken(token: string): Promise<LoginResponse> {
@@ -243,14 +254,17 @@ const apiRequest = async (
             );
 
             if (refreshResponse.ok) {
-              const tokenData = await refreshResponse.json();
+              const refreshData = await refreshResponse.json();
+
+              // Extract token from the data field
+              const newToken = refreshData.data.access_token;
 
               // Update localStorage directly since we can't access Zustand here
               const updatedAuth = {
                 ...parsedAuth,
                 state: {
                   ...parsedAuth.state,
-                  token: tokenData.access_token
+                  token: newToken
                 }
               };
               localStorage.setItem('auth-storage', JSON.stringify(updatedAuth));
@@ -258,7 +272,7 @@ const apiRequest = async (
               // Retry original request with new token
               const newHeaders = {
                 ...headers,
-                Authorization: `Bearer ${tokenData.access_token}`
+                Authorization: `Bearer ${newToken}`
               };
 
               return fetch(url, {
@@ -291,26 +305,29 @@ interface AIHealthResponse {
 }
 
 interface UserProfileResponse {
-  id: number;
-  username: string;
-  email?: string;
-  full_name?: string;
-  avatar_url?: string;
   bio?: string;
-  phone?: string;
   location?: string;
   website?: string;
-  birth_date?: string;
-  role?: string;
-  is_active?: boolean;
-  created_at: string;
+  birthDate?: string;
+  title?: string;
+  expertise?: string[];
+  experienceYears?: number;
+  hourlyRate?: string;
+  urgencyLevel?: number;
+  budgetMin?: string;
+  budgetMax?: string;
+  learningGoals?: string;
+  createdAt: string;
+  updatedAt: string;
+  id: string;
+  userId: string;
 }
 
 interface SessionStatistics {
-  total_sessions?: number;
-  total_hours?: number;
-  average_rating?: number;
-  completed_applications?: number;
+  total_sessions: number;
+  completed_sessions: number;
+  cancelled_sessions: number;
+  completion_rate: number;
 }
 
 // Profile and user data functions
@@ -386,29 +403,14 @@ export const getSessionStatistics = async (): Promise<SessionStatistics> => {
       console.warn('User not authenticated, returning default statistics');
       return {
         total_sessions: 0,
-        total_hours: 0,
-        average_rating: 0,
-        completed_applications: 0
+        completed_sessions: 0,
+        cancelled_sessions: 0,
+        completion_rate: 0
       };
     }
 
-    // Try to get user's role from auth store
-    let userRole = 'student'; // default role
-    if (typeof window !== 'undefined') {
-      const authStorage = localStorage.getItem('auth-storage');
-      if (authStorage) {
-        const parsedAuth = JSON.parse(authStorage);
-        if (parsedAuth?.state?.user?.role) {
-          userRole = parsedAuth.state.user.role.toLowerCase();
-        }
-      }
-    }
-
-    const queryParams = new URLSearchParams();
-    queryParams.append('role', userRole);
-
     const response = await apiRequest(
-      getFullUrl(`${API_CONFIG.ENDPOINTS.SESSIONS.STATISTICS}?${queryParams}`)
+      getFullUrl(API_CONFIG.ENDPOINTS.SESSIONS.STATISTICS)
     );
 
     if (!response.ok) {
@@ -417,9 +419,9 @@ export const getSessionStatistics = async (): Promise<SessionStatistics> => {
         console.warn('Authentication failed, returning default statistics');
         return {
           total_sessions: 0,
-          total_hours: 0,
-          average_rating: 0,
-          completed_applications: 0
+          completed_sessions: 0,
+          cancelled_sessions: 0,
+          completion_rate: 0
         };
       }
 
@@ -430,9 +432,9 @@ export const getSessionStatistics = async (): Promise<SessionStatistics> => {
         );
         return {
           total_sessions: 0,
-          total_hours: 0,
-          average_rating: 0,
-          completed_applications: 0
+          completed_sessions: 0,
+          cancelled_sessions: 0,
+          completion_rate: 0
         };
       }
       throw new Error('Failed to fetch session statistics');
@@ -444,9 +446,9 @@ export const getSessionStatistics = async (): Promise<SessionStatistics> => {
     // Return default statistics to prevent UI breaking
     return {
       total_sessions: 0,
-      total_hours: 0,
-      average_rating: 0,
-      completed_applications: 0
+      completed_sessions: 0,
+      cancelled_sessions: 0,
+      completion_rate: 0
     };
   }
 };
@@ -735,9 +737,18 @@ export const uploadUserAvatar = async (
 
 // Import ProfileUpdateData type
 interface ProfileUpdateData {
-  full_name?: string;
-  avatar_url?: string;
   bio?: string;
+  location?: string;
+  website?: string;
+  birth_date?: string;
+  title?: string;
+  expertise?: string[];
+  experience_years?: number;
+  hourly_rate?: number;
+  urgency_level?: number;
+  budget_min?: number;
+  budget_max?: number;
+  learning_goals?: string;
 }
 
 export const apiClient = new ApiClient();

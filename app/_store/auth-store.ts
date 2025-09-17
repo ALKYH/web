@@ -115,20 +115,21 @@ export const useAuthStore = create<AuthState>()(
         set({ loading: true });
 
         try {
-          const tokenResponse = await apiClient.login(credentials);
+          const loginResponse = await apiClient.login(credentials);
+
+          // Extract token from the data field
+          const token = loginResponse.data.access_token;
 
           // Get user info after successful login
-          const userResponse = await apiClient.getCurrentUser(
-            tokenResponse.access_token
-          );
+          const userResponse = await apiClient.getCurrentUser(token);
 
           // Sync with localStorage
-          authUtils.setToken(tokenResponse.access_token);
+          authUtils.setToken(token);
           authUtils.setUser(userResponse);
 
           set({
             user: userResponse,
-            token: tokenResponse.access_token,
+            token: token,
             isAuthenticated: true,
             loading: false,
             initialized: true
@@ -188,20 +189,21 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          const tokenResponse = await apiClient.refreshToken(token);
+          const refreshResponse = await apiClient.refreshToken(token);
+
+          // Extract token from the data field
+          const newToken = refreshResponse.data.access_token;
 
           // Get updated user info
-          const userResponse = await apiClient.getCurrentUser(
-            tokenResponse.access_token
-          );
+          const userResponse = await apiClient.getCurrentUser(newToken);
 
           // Sync with localStorage
-          authUtils.setToken(tokenResponse.access_token);
+          authUtils.setToken(newToken);
           authUtils.setUser(userResponse);
 
           set({
             user: userResponse,
-            token: tokenResponse.access_token,
+            token: newToken,
             isAuthenticated: true,
             loading: false,
             initialized: true

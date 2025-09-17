@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
@@ -17,21 +16,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Edit, Loader2, Camera, Upload } from 'lucide-react';
 import { User } from '@/lib/api';
-import { uploadUserAvatar } from '@/lib/api';
-
-interface ProfileUpdateData {
-  full_name?: string;
-  avatar_url?: string;
-  bio?: string;
-}
+import { uploadUserAvatar, type ProfileUpdateData } from '@/lib/api';
 
 interface EditProfileDialogProps {
   user: User;
   onSave: (updatedData: ProfileUpdateData) => Promise<void>;
   trigger?: React.ReactNode;
 }
-
-export type { ProfileUpdateData };
 
 export function EditProfileDialog({
   user,
@@ -43,10 +34,19 @@ export function EditProfileDialog({
   const [dataLoading, setDataLoading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [formData, setFormData] = useState({
-    full_name: '',
-    avatar_url: '',
-    bio: ''
+  const [formData, setFormData] = useState<ProfileUpdateData>({
+    bio: '',
+    location: '',
+    website: '',
+    birth_date: '',
+    title: '',
+    expertise: [],
+    experience_years: 0,
+    hourly_rate: 0,
+    urgency_level: 1,
+    budget_min: 0,
+    budget_max: 0,
+    learning_goals: ''
   });
 
   // Load user data when dialog opens
@@ -58,18 +58,36 @@ export function EditProfileDialog({
         getUserProfile()
           .then(profile => {
             setFormData({
-              full_name: profile.full_name || user.full_name || '',
-              avatar_url: profile.avatar_url || user.avatar_url || '',
-              bio: profile.bio || user.bio || ''
+              bio: profile.bio || '',
+              location: profile.location || '',
+              website: profile.website || '',
+              birth_date: profile.birthDate || '',
+              title: profile.title || '',
+              expertise: profile.expertise || [],
+              experience_years: profile.experienceYears || 0,
+              hourly_rate: profile.hourlyRate ? parseFloat(profile.hourlyRate) : 0,
+              urgency_level: profile.urgencyLevel || 1,
+              budget_min: profile.budgetMin ? parseFloat(profile.budgetMin) : 0,
+              budget_max: profile.budgetMax ? parseFloat(profile.budgetMax) : 0,
+              learning_goals: profile.learningGoals || ''
             });
           })
           .catch(err => {
             console.error('Failed to load profile data:', err);
-            // Fallback to user data
+            // Fallback to default values
             setFormData({
-              full_name: user.full_name || '',
-              avatar_url: user.avatar_url || '',
-              bio: user.bio || ''
+              bio: user.bio || '',
+              location: '',
+              website: '',
+              birth_date: '',
+              title: '',
+              expertise: [],
+              experience_years: 0,
+              hourly_rate: 0,
+              urgency_level: 1,
+              budget_min: 0,
+              budget_max: 0,
+              learning_goals: ''
             });
           })
           .finally(() => {
@@ -79,7 +97,7 @@ export function EditProfileDialog({
     }
   }, [open, user]);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | number | string[]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -110,7 +128,7 @@ export function EditProfileDialog({
       const result = await uploadUserAvatar(file);
       setFormData(prev => ({
         ...prev,
-        avatar_url: result.avatar_url
+        avatarUrl: result.avatar_url
       }));
     } catch (error) {
       console.error('Avatar upload failed:', error);
@@ -157,15 +175,16 @@ export function EditProfileDialog({
         </DialogHeader>
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="full_name">真实姓名</Label>
+            <Label htmlFor="bio">个人简介</Label>
             {dataLoading ? (
-              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-20 w-full" />
             ) : (
-              <Input
-                id="full_name"
-                value={formData.full_name}
-                onChange={e => handleInputChange('full_name', e.target.value)}
-                placeholder="输入您的真实姓名"
+              <Textarea
+                id="bio"
+                value={formData.bio || ''}
+                onChange={e => handleInputChange('bio', e.target.value)}
+                placeholder="介绍一下自己..."
+                rows={3}
               />
             )}
           </div>
@@ -180,25 +199,10 @@ export function EditProfileDialog({
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
-                      {formData.avatar_url &&
-                      !formData.avatar_url.includes('example.com') ? (
-                        <Image
-                          src={
-                            formData.avatar_url.startsWith('/static')
-                              ? `https://web-4w0h.onrender.com${formData.avatar_url}`
-                              : formData.avatar_url
-                          }
-                          alt="Avatar"
-                          width={80}
-                          height={80}
-                          className="w-full h-full object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                          <Camera className="w-8 h-8" />
-                        </div>
-                      )}
+                      {/* Avatar preview temporarily disabled - avatarUrl not in ProfileUpdateData */}
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <Camera className="w-8 h-8" />
+                      </div>
                     </div>
                   </div>
                   <div className="flex-1">
@@ -236,37 +240,147 @@ export function EditProfileDialog({
                   className="hidden"
                 />
 
-                {/* Manual URL Input (Alternative) */}
-                <div className="border-t pt-4">
-                  <Label htmlFor="avatar_url" className="text-sm text-gray-600">
-                    或输入图片链接
-                  </Label>
-                  <Input
-                    id="avatar_url"
-                    type="url"
-                    value={formData.avatar_url}
-                    onChange={e =>
-                      handleInputChange('avatar_url', e.target.value)
-                    }
-                    placeholder="输入图片链接或点击上方上传"
-                    className="mt-1"
-                  />
-                </div>
               </div>
             )}
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="location">所在地</Label>
+              {dataLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Input
+                  id="location"
+                  value={formData.location || ''}
+                  onChange={e => handleInputChange('location', e.target.value)}
+                  placeholder="您的所在地"
+                />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="website">个人网站</Label>
+              {dataLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Input
+                  id="website"
+                  type="url"
+                  value={formData.website || ''}
+                  onChange={e => handleInputChange('website', e.target.value)}
+                  placeholder="https://example.com"
+                />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="birth_date">出生日期</Label>
+              {dataLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Input
+                  id="birth_date"
+                  type="date"
+                  value={formData.birth_date || ''}
+                  onChange={e => handleInputChange('birth_date', e.target.value)}
+                />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="title">导师职称</Label>
+              {dataLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Input
+                  id="title"
+                  value={formData.title || ''}
+                  onChange={e => handleInputChange('title', e.target.value)}
+                  placeholder="您的职称/职位"
+                />
+              )}
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="bio">个人简介</Label>
+            <Label htmlFor="experience_years">经验年限</Label>
             {dataLoading ? (
-              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Input
+                id="experience_years"
+                type="number"
+                min="0"
+                value={formData.experience_years || 0}
+                onChange={e => handleInputChange('experience_years', parseInt(e.target.value) || 0)}
+                placeholder="0"
+              />
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hourly_rate">时薪 (CNY)</Label>
+            {dataLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Input
+                id="hourly_rate"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.hourly_rate || 0}
+                onChange={e => handleInputChange('hourly_rate', parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+              />
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="budget_min">最小预算</Label>
+              {dataLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Input
+                  id="budget_min"
+                  type="number"
+                  min="0"
+                  value={formData.budget_min || 0}
+                  onChange={e => handleInputChange('budget_min', parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="budget_max">最大预算</Label>
+              {dataLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Input
+                  id="budget_max"
+                  type="number"
+                  min="0"
+                  value={formData.budget_max || 0}
+                  onChange={e => handleInputChange('budget_max', parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="learning_goals">学习目标</Label>
+            {dataLoading ? (
+              <Skeleton className="h-20 w-full" />
             ) : (
               <Textarea
-                id="bio"
-                value={formData.bio}
-                onChange={e => handleInputChange('bio', e.target.value)}
-                placeholder="介绍一下您自己..."
-                rows={4}
+                id="learning_goals"
+                value={formData.learning_goals || ''}
+                onChange={e => handleInputChange('learning_goals', e.target.value)}
+                placeholder="描述您的学习目标..."
+                rows={3}
               />
             )}
           </div>

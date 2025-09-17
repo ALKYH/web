@@ -42,7 +42,8 @@ export default function Component() {
     router.push('/');
   };
 
-  const getUserInitials = (username: string) => {
+  const getUserInitials = (username: string | undefined) => {
+    if (!username) return 'U';
     return username.slice(0, 2).toUpperCase();
   };
 
@@ -152,9 +153,9 @@ export default function Component() {
                       className="relative h-8 w-8 rounded-full"
                     >
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src="" alt={user.username} />
+                        <AvatarImage src="" alt={user?.username || 'User'} />
                         <AvatarFallback>
-                          {getUserInitials(user.username)}
+                          {getUserInitials(user?.username)}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
@@ -162,8 +163,8 @@ export default function Component() {
                   <DropdownMenuContent align="end" className="w-56">
                     <div className="flex items-center justify-start gap-2 p-2">
                       <div className="flex flex-col space-y-1 leading-none">
-                        <p className="font-medium">{user.username}</p>
-                        {user.email && (
+                        <p className="font-medium">{user?.username || 'User'}</p>
+                        {user?.email && (
                           <p className="w-[200px] truncate text-sm text-muted-foreground">
                             {user.email}
                           </p>
