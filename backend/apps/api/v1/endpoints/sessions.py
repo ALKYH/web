@@ -39,6 +39,93 @@ async def create_session(
         )
 
 @router.get(
+    "/statistics",
+    response_model=dict,
+    summary="获取会话统计",
+    description="获取当前用户的会话统计信息",
+)
+async def get_session_statistics(
+    db_conn=Depends(get_database),
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """获取会话统计"""
+    try:
+        # 使用当前用户的角色
+        user_role = current_user.role
+
+        # 简化实现：返回基础统计信息
+        sessions = await session.get_by_user(db_conn, current_user.id, 1000)  # 获取所有会话进行统计
+
+        total_sessions = len(sessions)
+        completed_sessions = len([s for s in sessions if s.get('status') == 'completed'])
+        cancelled_sessions = len([s for s in sessions if s.get('status') == 'cancelled'])
+        active_sessions = len([s for s in sessions if s.get('status') == 'active'])
+
+        stats = {
+            "user_role": user_role,
+            "total_sessions": total_sessions,
+            "active_sessions": active_sessions,
+            "completed_sessions": completed_sessions,
+            "cancelled_sessions": cancelled_sessions,
+            "completion_rate": round(completed_sessions / total_sessions if total_sessions > 0 else 0, 2),
+            "upcoming_sessions": total_sessions - completed_sessions - cancelled_sessions - active_sessions
+        }
+        return stats
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取会话统计失败: {str(e)}"
+        )
+
+@router.get(
+    "",
+    response_model=List[SessionRead],
+    summary="获取我的会话",
+    description="获取当前用户的所有会话",
+)
+async def get_my_sessions(
+    role: Optional[str] = Query(None, description="角色筛选（student/mentor）"),
+    limit: int = Query(20, ge=1, le=100, description="返回数量"),
+    db_conn=Depends(get_database),
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """获取我的会话"""
+    try:
+        sessions = await session.get_by_user(db_conn, current_user.id, limit)
+        return sessions
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取会话列表失败: {str(e)}"
+        )
+
+@router.get(
+    "/upcoming",
+    response_model=List[SessionRead],
+    summary="获取即将到来的会话",
+    description="获取用户即将进行的会话",
+)
+async def get_upcoming_sessions(
+    role: Optional[str] = Query(None, description="角色筛选（student/mentor）"),
+    limit: int = Query(10, ge=1, le=50, description="返回数量"),
+    db_conn=Depends(get_database),
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """获取即将到来的会话"""
+    try:
+        # 简化实现：获取所有用户会话（实际应该根据时间筛选即将到来的会话）
+        sessions = await session.get_by_user(db_conn, current_user.id, limit)
+        return sessions
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取即将到来的会话失败: {str(e)}"
+        )
+
+
+@router.get(
     "/{session_id}",
     response_model=SessionRead,
     summary="获取会话详情",
@@ -66,27 +153,6 @@ async def get_session_detail(
             detail=f"获取会话详情失败: {str(e)}"
         )
 
-@router.get(
-    "",
-    response_model=List[SessionRead],
-    summary="获取我的会话",
-    description="获取当前用户的所有会话",
-)
-async def get_my_sessions(
-    role: Optional[str] = Query(None, description="角色筛选（student/mentor）"),
-    limit: int = Query(20, ge=1, le=100, description="返回数量"),
-    db_conn=Depends(get_database),
-    current_user: AuthenticatedUser = Depends(get_current_user)
-):
-    """获取我的会话"""
-    try:
-        sessions = await session.get_by_user(db_conn, current_user.id, limit)
-        return sessions
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取会话列表失败: {str(e)}"
-        )
 
 @router.put(
     "/{session_id}",
@@ -287,66 +353,3 @@ async def save_summary(
             detail=f"保存总结失败: {str(e)}"
         )
 
-@router.get(
-    "/upcoming",
-    response_model=List[SessionRead],
-    summary="获取即将到来的会话",
-    description="获取用户即将进行的会话",
-)
-async def get_upcoming_sessions(
-    role: Optional[str] = Query(None, description="角色筛选（student/mentor）"),
-    limit: int = Query(10, ge=1, le=50, description="返回数量"),
-    db_conn=Depends(get_database),
-    current_user: AuthenticatedUser = Depends(get_current_user)
-):
-    """获取即将到来的会话"""
-    try:
-        # 简化实现：获取所有用户会话（实际应该根据时间筛选即将到来的会话）
-        sessions = await session.get_by_user(db_conn, current_user.id, limit)
-        return sessions
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取即将到来的会话失败: {str(e)}"
-        )
-
-@router.get(
-    "/statistics",
-    response_model=dict,
-    summary="获取会话统计",
-    description="获取用户的会话统计信息",
-)
-async def get_session_statistics(
-    role: str = Query(..., description="角色（student/mentor）"),
-    db_conn=Depends(get_database),
-    current_user: AuthenticatedUser = Depends(get_current_user)
-):
-    """获取会话统计"""
-    try:
-        if role not in ["student", "mentor"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="角色参数必须为student或mentor"
-            )
-            
-        # 简化实现：返回基础统计信息
-        sessions = await session.get_by_user(db_conn, current_user.id, 1000)  # 获取所有会话进行统计
-        
-        total_sessions = len(sessions)
-        completed_sessions = len([s for s in sessions if s.get('status') == 'completed'])
-        cancelled_sessions = len([s for s in sessions if s.get('status') == 'cancelled'])
-        
-        stats = {
-            "total_sessions": total_sessions,
-            "completed_sessions": completed_sessions,
-            "cancelled_sessions": cancelled_sessions,
-            "completion_rate": completed_sessions / total_sessions if total_sessions > 0 else 0
-        }
-        return stats
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取会话统计失败: {str(e)}"
-        ) 

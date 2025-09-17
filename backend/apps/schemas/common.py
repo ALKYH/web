@@ -6,8 +6,9 @@
 """
 
 from datetime import datetime, timezone
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, List, Optional, TypeVar, Dict, Any
 from uuid import UUID, uuid4
+from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_core import PydanticCustomError
@@ -15,6 +16,68 @@ from pydantic_core import PydanticCustomError
 from libs.utils.string_utils import to_camel
 
 DataT = TypeVar("DataT")
+
+
+class ErrorCode(Enum):
+    """统一的错误码枚举"""
+
+    # 通用错误 (1000-1999)
+    SUCCESS = (200, "成功")
+    UNKNOWN_ERROR = (1000, "未知错误")
+    PARAMETER_ERROR = (1001, "参数错误")
+    VALIDATION_ERROR = (1002, "数据验证失败")
+    RESOURCE_NOT_FOUND = (1003, "资源不存在")
+    PERMISSION_DENIED = (1004, "权限不足")
+    REQUEST_TOO_FREQUENT = (1005, "请求过于频繁")
+
+    # 用户相关错误 (2000-2999)
+    USER_NOT_FOUND = (2000, "用户不存在")
+    USER_ALREADY_EXISTS = (2001, "用户已存在")
+    USER_DISABLED = (2002, "用户已被禁用")
+    USER_NOT_VERIFIED = (2003, "用户未验证")
+
+    # 认证相关错误 (3000-3999)
+    UNAUTHORIZED = (3000, "未授权访问")
+    TOKEN_EXPIRED = (3001, "令牌已过期")
+    TOKEN_INVALID = (3002, "令牌无效")
+    LOGIN_FAILED = (3003, "登录失败")
+
+    # 业务逻辑错误 (4000-4999)
+    BUSINESS_RULE_VIOLATION = (4000, "业务规则违反")
+    INSUFFICIENT_BALANCE = (4001, "余额不足")
+    OPERATION_NOT_ALLOWED = (4002, "操作不允许")
+
+    # 智能体相关错误 (5000-5999)
+    AGENT_NOT_AVAILABLE = (5000, "智能体不可用")
+    AGENT_EXECUTION_FAILED = (5001, "智能体执行失败")
+
+    def __init__(self, code: int, message: str):
+        self.code = code
+        self.message = message
+
+
+class ErrorDetail(BaseModel):
+    """详细错误信息"""
+    field: Optional[str] = Field(None, description="错误字段")
+    message: str = Field(..., description="错误消息")
+    code: Optional[str] = Field(None, description="字段错误码")
+
+
+class ErrorResponse(BaseModel):
+    """统一的错误响应格式"""
+    success: bool = Field(False, description="是否成功")
+    code: int = Field(..., description="错误码")
+    message: str = Field(..., description="错误消息")
+    details: Optional[List[ErrorDetail]] = Field(None, description="详细错误信息")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="时间戳")
+    request_id: Optional[str] = Field(None, description="请求ID")
+    path: Optional[str] = Field(None, description="请求路径")
+
+    class Config:
+        json_encoders = {
+            UUID: str,
+            datetime: lambda v: v.isoformat()
+        }
 
 
 def validate_uuidv7(v: UUID) -> UUID:
@@ -72,7 +135,48 @@ class Pagination(BaseModel):
 
 class PaginatedResponse(BaseModel, Generic[DataT]):
     """
-    定义标准化的分页响应结构。
+    标准化的分页响应结构。
+    """
+
+    success: bool = Field(True, description="是否成功")
+    code: int = Field(200, description="状态码")
+    message: str = Field("success", description="响应消息")
+    data: Dict[str, Any] = Field(..., description="分页数据")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="时间戳")
+    request_id: Optional[str] = Field(None, description="请求ID")
+
+    @classmethod
+    def create(
+        cls,
+        items: List[DataT],
+        total: int,
+        page: int,
+        page_size: int,
+        request_id: Optional[str] = None
+    ) -> "PaginatedResponse[DataT]":
+        """创建分页响应"""
+        total_pages = (total + page_size - 1) // page_size if page_size > 0 else 0
+
+        return cls(
+            data={
+                "items": items,
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            },
+            request_id=request_id
+        )
+
+    class Config:
+        json_encoders = {UUID: str}
+
+
+class LegacyPaginatedResponse(BaseModel, Generic[DataT]):
+    """
+    向后兼容的旧分页响应结构，建议逐渐迁移到 PaginatedResponse
     """
 
     total: int = Field(..., description="符合条件的项目总数")
@@ -81,12 +185,37 @@ class PaginatedResponse(BaseModel, Generic[DataT]):
     total_pages: int = Field(..., description="总页数")
     items: List[DataT] = Field(..., description="当前页的项目列表")
 
+    class Config:
+        json_encoders = {UUID: str}
+
+
+class SuccessResponse(BaseModel, Generic[DataT]):
+    """
+    统一的成功响应格式
+    """
+
+    success: bool = Field(True, description="是否成功")
+    code: int = Field(200, description="状态码，200表示成功")
+    message: str = Field("success", description="响应消息")
+    data: Optional[DataT] = Field(None, description="响应数据")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="时间戳")
+    request_id: Optional[str] = Field(None, description="请求ID")
+
+    class Config:
+        json_encoders = {
+            UUID: str,
+            datetime: lambda v: v.isoformat()
+        }
+
 
 class GeneralResponse(BaseModel, Generic[DataT]):
     """
-    定义标准化的 API 响应结构，用于封装返回数据。
+    向后兼容的通用响应结构，建议逐渐迁移到 SuccessResponse
     """
 
     code: int = Field(200, description="状态码，200表示成功")
     message: str = Field("success", description="响应消息")
     data: Optional[DataT] = Field(None, description="响应数据")
+
+    class Config:
+        json_encoders = {UUID: str}

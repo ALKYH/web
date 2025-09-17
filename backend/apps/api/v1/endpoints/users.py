@@ -2,7 +2,7 @@
 用户中心 - API 路由
 包括用户资料管理和认证相关功能
 """
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Request
 from typing import Optional
 from uuid import UUID
 
@@ -10,26 +10,28 @@ from apps.schemas.user import (
     User, UserCreate, UserUpdate, UserLogin,
     Profile, ProfileUpdate
 )
-from apps.schemas.common import GeneralResponse
+from apps.schemas.common import GeneralResponse, SuccessResponse
 from apps.api.v1.deps import (
     AuthenticatedUser, get_current_user, get_database
 )
 from apps.api.v1.services import user as user_service
 from libs.database.adapters import DatabaseAdapter
+from libs.utils.response_utils import create_success_response, extract_request_id
 
 router = APIRouter()
 
 
 @router.get(
     "/me",
-    response_model=GeneralResponse[User],
+    response_model=SuccessResponse[User],
     summary="获取当前用户信息",
     description="获取当前登录用户的完整信息"
 )
 async def read_current_user(
+    request: Request,
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: DatabaseAdapter = Depends(get_database)
-) -> GeneralResponse[User]:
+) -> SuccessResponse[User]:
     """
     获取当前用户的完整信息
     """
@@ -37,20 +39,22 @@ async def read_current_user(
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
 
-    return GeneralResponse(data=user)
+    request_id = extract_request_id(request)
+    return create_success_response(data=user, request_id=request_id)
 
 
 @router.put(
     "/me",
-    response_model=GeneralResponse[User],
+    response_model=SuccessResponse[User],
     summary="更新当前用户信息",
     description="更新当前登录用户的基本信息"
 )
 async def update_current_user(
+    request: Request,
     user_data: UserUpdate,
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: DatabaseAdapter = Depends(get_database)
-) -> GeneralResponse[User]:
+) -> SuccessResponse[User]:
     """
     更新当前用户的基本信息
     """
@@ -62,19 +66,21 @@ async def update_current_user(
     if not updated_user:
         raise HTTPException(status_code=404, detail="用户不存在")
 
-    return GeneralResponse(data=updated_user)
+    request_id = extract_request_id(request)
+    return create_success_response(data=updated_user, message="用户信息更新成功", request_id=request_id)
 
 
 @router.get(
     "/profile",
-    response_model=GeneralResponse[Profile],
+    response_model=SuccessResponse[Profile],
     summary="获取当前用户画像",
     description="获取当前登录用户的完整画像信息"
 )
 async def read_current_user_profile(
+    request: Request,
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: DatabaseAdapter = Depends(get_database)
-) -> GeneralResponse[Profile]:
+) -> SuccessResponse[Profile]:
     """
     获取当前用户的完整画像信息
     """
@@ -82,20 +88,22 @@ async def read_current_user_profile(
     if not profile:
         raise HTTPException(status_code=404, detail="用户画像不存在")
 
-    return GeneralResponse(data=profile)
+    request_id = extract_request_id(request)
+    return create_success_response(data=profile, request_id=request_id)
 
 
 @router.put(
     "/profile",
-    response_model=GeneralResponse[Profile],
+    response_model=SuccessResponse[Profile],
     summary="更新当前用户画像",
     description="更新当前登录用户的画像信息"
 )
 async def update_current_user_profile(
+    request: Request,
     profile_data: ProfileUpdate,
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: DatabaseAdapter = Depends(get_database)
-) -> GeneralResponse[Profile]:
+) -> SuccessResponse[Profile]:
     """
     更新当前用户的画像信息
     """
@@ -107,4 +115,5 @@ async def update_current_user_profile(
     if not updated_profile:
         raise HTTPException(status_code=404, detail="用户画像不存在")
 
-    return GeneralResponse(data=updated_profile)
+    request_id = extract_request_id(request)
+    return create_success_response(data=updated_profile, message="用户画像更新成功", request_id=request_id)
