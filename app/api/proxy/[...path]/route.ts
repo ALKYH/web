@@ -6,44 +6,56 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://123.57.174.18
  * API代理路由 - 将所有/api/*请求代理到后端服务器
  * 解决跨域问题，统一API入口
  */
+type RouteContext = { params?: { path?: string[] } };
+
+function getPathFromContext(context: unknown): string[] {
+    const c = context as RouteContext | undefined;
+    const p = c?.params?.path;
+    return Array.isArray(p) ? p : [];
+}
 export async function GET(
     request: NextRequest,
-    { params }: { params: { path: string[] } }
+    context: unknown
 ) {
-    return handleRequest(request, params, 'GET');
+    const path = getPathFromContext(context);
+    return handleRequest(request, path, 'GET');
 }
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { path: string[] } }
+    context: unknown
 ) {
-    return handleRequest(request, params, 'POST');
+    const path = getPathFromContext(context);
+    return handleRequest(request, path, 'POST');
 }
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { path: string[] } }
+    context: unknown
 ) {
-    return handleRequest(request, params, 'PUT');
+    const path = getPathFromContext(context);
+    return handleRequest(request, path, 'PUT');
 }
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { path: string[] } }
+    context: unknown
 ) {
-    return handleRequest(request, params, 'DELETE');
+    const path = getPathFromContext(context);
+    return handleRequest(request, path, 'DELETE');
 }
 
 export async function OPTIONS(
     request: NextRequest,
-    { params }: { params: { path: string[] } }
+    context: unknown
 ) {
-    return handleRequest(request, params, 'OPTIONS');
+    const path = getPathFromContext(context);
+    return handleRequest(request, path, 'OPTIONS');
 }
 
 async function handleRequest(
     request: NextRequest,
-    { path }: { path: string[] },
+    path: string[],
     method: string
 ) {
     try {
