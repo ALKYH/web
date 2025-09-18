@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://123.57.174.186:8000/api/:path*'
+        destination: 'http://123.57.174.186:8000/api/:path*' // 代理到后端API
       }
     ];
   },
