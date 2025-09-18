@@ -77,7 +77,7 @@ class ApiClient {
 
   async register(userData: RegisterRequest): Promise<User> {
     const response = await fetch(
-      `${this.baseUrl}${API_CONFIG.ENDPOINTS.AUTH.REGISTER}`,
+      `${this.baseUrl}${API_CONFIG.ENDPOINTS.USERS.REGISTER}`,
       {
         method: 'POST',
         headers: {
@@ -141,16 +141,15 @@ class ApiClient {
     sessionId?: string
   ): Promise<Response> {
     const response = await fetch(
-      `${this.baseUrl}${API_CONFIG.ENDPOINTS.PLANNER.INVOKE}`,
+      `${this.baseUrl}${API_CONFIG.ENDPOINTS.AGENTS.PLANNER_CHAT}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          input: message,
-          session_id: sessionId,
-          stream: true
+          message: message,
+          session_id: sessionId
         })
       }
     );
@@ -164,7 +163,7 @@ class ApiClient {
 
   async getAICapabilities(): Promise<AICapabilitiesResponse> {
     const response = await fetch(
-      `${this.baseUrl}${API_CONFIG.ENDPOINTS.PLANNER.CAPABILITIES}`,
+      `${this.baseUrl}${API_CONFIG.ENDPOINTS.AGENTS.INFO}`,
       {
         method: 'GET'
       }
@@ -179,7 +178,7 @@ class ApiClient {
 
   async checkAIHealth(): Promise<AIHealthResponse> {
     const response = await fetch(
-      `${this.baseUrl}${API_CONFIG.ENDPOINTS.PLANNER.HEALTH}`,
+      `${this.baseUrl}${API_CONFIG.ENDPOINTS.AGENTS.HEALTH}`,
       {
         method: 'GET'
       }
@@ -376,7 +375,7 @@ export const getUserSessions = async (params?: {
     if (params?.offset) queryParams.append('offset', params.offset.toString());
 
     const response = await apiRequest(
-      getFullUrl(`${API_CONFIG.ENDPOINTS.SESSIONS.LIST}?${queryParams}`)
+      getFullUrl(`${API_CONFIG.ENDPOINTS.MENTORSHIP.GET_ALL}?${queryParams}`)
     );
 
     if (!response.ok) {
@@ -410,7 +409,7 @@ export const getSessionStatistics = async (): Promise<SessionStatistics> => {
     }
 
     const response = await apiRequest(
-      getFullUrl(API_CONFIG.ENDPOINTS.SESSIONS.STATISTICS)
+      getFullUrl(API_CONFIG.ENDPOINTS.TRANSACTIONS.GET_FINANCIAL_STATS)
     );
 
     if (!response.ok) {
@@ -456,7 +455,7 @@ export const getSessionStatistics = async (): Promise<SessionStatistics> => {
 // Student/Mentor specific data
 export const getStudentProfile = async (): Promise<unknown> => {
   const response = await apiRequest(
-    getFullUrl(API_CONFIG.ENDPOINTS.STUDENTS.PROFILE)
+    getFullUrl(API_CONFIG.ENDPOINTS.USERS.ME)
   );
 
   if (!response.ok) {
@@ -477,7 +476,7 @@ export const getUserOrders = async (params?: {
 
   const response = await apiRequest(
     getFullUrl(
-      `${API_CONFIG.ENDPOINTS.SERVICES.ORDERS.MY_ORDERS}?${queryParams}`
+      `${API_CONFIG.ENDPOINTS.TRANSACTIONS.LIST_ORDERS}?${queryParams}`
     )
   );
 
@@ -561,7 +560,7 @@ export const searchMentors = async (params?: {
   if (params?.offset) queryParams.append('offset', params.offset.toString());
 
   const response = await fetch(
-    getFullUrl(`${API_CONFIG.ENDPOINTS.MENTORS.SEARCH}?${queryParams}`),
+    getFullUrl(`${API_CONFIG.ENDPOINTS.MATCHING.SEARCH_MENTORS}?${queryParams}`),
     {
       headers: {
         'Content-Type': 'application/json'
@@ -578,7 +577,7 @@ export const searchMentors = async (params?: {
 
 export const getMentorProfile = async (): Promise<MentorProfile> => {
   const response = await apiRequest(
-    getFullUrl(API_CONFIG.ENDPOINTS.MENTORS.PROFILE)
+    getFullUrl(API_CONFIG.ENDPOINTS.USERS.ME)
   );
 
   if (!response.ok) {
@@ -596,9 +595,9 @@ export const createMentorProfile = async (profileData: {
   session_duration_minutes?: number;
 }): Promise<MentorProfile> => {
   const response = await apiRequest(
-    getFullUrl(API_CONFIG.ENDPOINTS.MENTORS.PROFILE),
+    getFullUrl(API_CONFIG.ENDPOINTS.USERS.UPDATE_ME),
     {
-      method: 'POST',
+      method: 'PUT',
       body: JSON.stringify(profileData)
     }
   );
@@ -618,7 +617,7 @@ export const updateMentorProfile = async (profileData: {
   session_duration_minutes?: number;
 }): Promise<MentorProfile> => {
   const response = await apiRequest(
-    getFullUrl(API_CONFIG.ENDPOINTS.MENTORS.PROFILE),
+    getFullUrl(API_CONFIG.ENDPOINTS.USERS.UPDATE_ME),
     {
       method: 'PUT',
       body: JSON.stringify(profileData)
@@ -634,7 +633,7 @@ export const updateMentorProfile = async (profileData: {
 
 export const deleteMentorProfile = async (): Promise<{ message: string }> => {
   const response = await apiRequest(
-    getFullUrl(API_CONFIG.ENDPOINTS.MENTORS.PROFILE),
+    getFullUrl(API_CONFIG.ENDPOINTS.USERS.DELETE_ME),
     {
       method: 'DELETE'
     }
@@ -652,36 +651,17 @@ export const getUserMessages = async (params?: {
   limit?: number;
   offset?: number;
 }): Promise<unknown[]> => {
-  const queryParams = new URLSearchParams();
-  if (params?.limit) queryParams.append('limit', params.limit.toString());
-  if (params?.offset) queryParams.append('offset', params.offset.toString());
-
-  const response = await apiRequest(
-    getFullUrl(`${API_CONFIG.ENDPOINTS.MESSAGES.LIST}?${queryParams}`)
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch user messages');
-  }
-
-  return response.json();
+  // TODO: Implement when MESSAGES endpoint is available
+  console.warn('getUserMessages: MESSAGES endpoint not available');
+  return [];
 };
 
 export const getUserConversations = async (params?: {
   limit?: number;
 }): Promise<unknown[]> => {
-  const queryParams = new URLSearchParams();
-  if (params?.limit) queryParams.append('limit', params.limit.toString());
-
-  const response = await apiRequest(
-    getFullUrl(`${API_CONFIG.ENDPOINTS.MESSAGES.CONVERSATIONS}?${queryParams}`)
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch user conversations');
-  }
-
-  return response.json();
+  // TODO: Implement when MESSAGES endpoint is available
+  console.warn('getUserConversations: MESSAGES endpoint not available');
+  return [];
 };
 
 // Update user profile function
@@ -705,7 +685,7 @@ export const updateUserBasicProfile = async (
   profileData: Record<string, unknown>
 ): Promise<UserProfileResponse> => {
   const response = await apiRequest(
-    getFullUrl(API_CONFIG.ENDPOINTS.USERS.ME_BASIC),
+    getFullUrl(API_CONFIG.ENDPOINTS.USERS.UPDATE_ME),
     {
       method: 'PUT',
       body: JSON.stringify(profileData)
