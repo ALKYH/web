@@ -115,57 +115,65 @@ export default function TutorChatPage() {
 
   const loadConversations = useCallback(async () => {
     try {
-      // Load existing conversations from API
-      const response = await fetch(
-        getFullUrl(API_CONFIG.ENDPOINTS.MESSAGES.CONVERSATIONS),
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      // TODO: Load conversations from API when MESSAGES endpoint is available
+      console.warn('loadConversations: MESSAGES endpoint not available, returning empty conversations');
 
-      if (response.ok) {
-        const data = await response.json();
-        // Transform API data to our conversation format
-        const formattedConversations: Conversation[] = data.map(
-          (conv: {
-            tutor_id?: number;
-            mentor_id?: number;
-            id?: number;
-            tutor_name?: string;
-            mentor_name?: string;
-            avatar_url?: string;
-            last_message?: string;
-            last_message_time?: string;
-            unread_count?: number;
-            is_online?: boolean;
-          }) => ({
-            tutorId: conv.tutor_id || conv.mentor_id || conv.id || 0,
-            tutorName: conv.tutor_name || conv.mentor_name || 'Unknown Tutor',
-            tutorAvatar: conv.avatar_url,
-            lastMessage: conv.last_message,
-            lastMessageTime: conv.last_message_time
-              ? new Date(conv.last_message_time)
-              : undefined,
-            unreadCount: conv.unread_count || 0,
-            isOnline: conv.is_online || false
-          })
-        );
+      // For now, return empty conversations
+      setConversations([]);
+      return;
 
-        // Merge with default tutors, prioritizing API data
-        const mergedConversations = [...formattedConversations];
-        defaultTutors.forEach(defaultTutor => {
-          if (
-            !mergedConversations.find(c => c.tutorId === defaultTutor.tutorId)
-          ) {
-            mergedConversations.push(defaultTutor);
-          }
-        });
+      // TODO: Load conversations from API when MESSAGES endpoint is available
+      // const response = await fetch(
+      //   getFullUrl(API_CONFIG.ENDPOINTS.MESSAGES.CONVERSATIONS),
+      //   {
+      //     headers: {
+      //       Authorization: `Bearer ${token}`,
+      //       'Content-Type': 'application/json'
+      //     }
+      //   }
+      // );
 
-        setConversations(mergedConversations);
-      }
+      // TODO: Uncomment when MESSAGES endpoint is available
+      // if (response.ok) {
+      //   const data = await response.json();
+      //   // Transform API data to our conversation format
+      //   const formattedConversations: Conversation[] = data.map(
+      //     (conv: {
+      //       tutor_id?: number;
+      //       mentor_id?: number;
+      //       id?: number;
+      //       tutor_name?: string;
+      //       mentor_name?: string;
+      //       avatar_url?: string;
+      //       last_message?: string;
+      //       last_message_time?: string;
+      //       unread_count?: number;
+      //       is_online?: boolean;
+      //     }) => ({
+      //       tutorId: conv.tutor_id || conv.mentor_id || conv.id || 0,
+      //       tutorName: conv.tutor_name || conv.mentor_name || 'Unknown Tutor',
+      //       tutorAvatar: conv.avatar_url,
+      //       lastMessage: conv.last_message,
+      //       lastMessageTime: conv.last_message_time
+      //         ? new Date(conv.last_message_time)
+      //         : undefined,
+      //       unreadCount: conv.unread_count || 0,
+      //       isOnline: conv.is_online || false
+      //     })
+      //   );
+
+      //   // Merge with default tutors, prioritizing API data
+      //   const mergedConversations = [...formattedConversations];
+      //   defaultTutors.forEach(defaultTutor => {
+      //     if (
+      //       !mergedConversations.find(c => c.tutorId === defaultTutor.tutorId)
+      //     ) {
+      //       mergedConversations.push(defaultTutor);
+      //     }
+      //   });
+
+      //   setConversations(mergedConversations);
+      // }
     } catch (error) {
       console.error('Failed to load conversations:', error);
       // Keep default tutors on error
@@ -181,37 +189,45 @@ export default function TutorChatPage() {
   const loadMessages = async (tutorId: number) => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        getFullUrl(API_CONFIG.ENDPOINTS.MESSAGES.CONVERSATION_BY_ID(tutorId)),
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
 
-      if (response.ok) {
-        const data = await response.json();
-        const formattedMessages: Message[] = data.map(
-          (msg: {
-            id?: string | number;
-            content?: string;
-            message?: string;
-            sender_id?: number;
-            created_at?: string;
-            timestamp?: string;
-          }) => ({
-            id: String(msg.id || Date.now() + Math.random()),
-            content: msg.content || msg.message || '',
-            sender: msg.sender_id === tutorId ? 'tutor' : 'user',
-            timestamp: new Date(msg.created_at || msg.timestamp || Date.now()),
-            tutorId: tutorId,
-            tutorName: selectedTutor?.tutorName
-          })
-        );
-        setMessages(formattedMessages);
-      }
+      // TODO: Load messages from API when MESSAGES endpoint is available
+      console.warn('loadMessages: MESSAGES endpoint not available, returning empty messages');
+      setMessages([]);
+      setIsLoading(false);
+      return;
+
+      // TODO: Uncomment when MESSAGES endpoint is available
+      // const response = await fetch(
+      //   getFullUrl(API_CONFIG.ENDPOINTS.MESSAGES.CONVERSATION_BY_ID(tutorId)),
+      //   {
+      //     headers: {
+      //       Authorization: `Bearer ${token}`,
+      //       'Content-Type': 'application/json'
+      //     }
+      //   }
+      // );
+
+      // if (response.ok) {
+      //   const data = await response.json();
+      //   const formattedMessages: Message[] = data.map(
+      //     (msg: {
+      //       id?: string | number;
+      //       content?: string;
+      //       message?: string;
+      //       sender_id?: number;
+      //       created_at?: string;
+      //       timestamp?: string;
+      //     }) => ({
+      //       id: String(msg.id || Date.now() + Math.random()),
+      //       content: msg.content || msg.message || '',
+      //       sender: msg.sender_id === tutorId ? 'tutor' : 'user',
+      //       timestamp: new Date(msg.created_at || msg.timestamp || Date.now()),
+      //       tutorId: tutorId,
+      //       tutorName: selectedTutor?.tutorName
+      //     })
+      //   );
+      //   setMessages(formattedMessages);
+      // }
     } catch (error) {
       console.error('Failed to load messages:', error);
     } finally {
@@ -274,25 +290,28 @@ export default function TutorChatPage() {
     setIsTyping(true);
 
     try {
-      const response = await fetch(
-        getFullUrl(API_CONFIG.ENDPOINTS.MESSAGES.LIST),
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            recipient_id: selectedTutor.tutorId,
-            content: currentInput,
-            conversation_id: selectedTutor.tutorId
-          })
-        }
-      );
+      // TODO: Uncomment when MESSAGES endpoint is available
+      // const response = await fetch(
+      //   getFullUrl(API_CONFIG.ENDPOINTS.MESSAGES.LIST),
+      //   {
+      //     method: 'POST',
+      //     headers: {
+      //       Authorization: `Bearer ${token}`,
+      //       'Content-Type': 'application/json'
+      //     },
+      //     body: JSON.stringify({
+      //       recipient_id: selectedTutor.tutorId,
+      //       content: currentInput,
+      //       conversation_id: selectedTutor.tutorId
+      //     })
+      //   }
+      // );
 
-      if (!response.ok) {
-        console.error('Failed to send message');
-      }
+      // if (!response.ok) {
+      //   console.error('Failed to send message');
+      // }
+
+      console.log('Message sent (simulated):', currentInput);
 
       // Simulate tutor response after a delay
       setTimeout(() => {

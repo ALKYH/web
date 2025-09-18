@@ -111,7 +111,7 @@ class AIAgentAPI {
    */
   async chatWithPlanner(request: ChatRequest): Promise<ChatResponse> {
     const response = await apiRequest(
-      getFullUrl(API_CONFIG.ENDPOINTS.AI_AGENTS_V2.PLANNER_CHAT),
+      getFullUrl(API_CONFIG.ENDPOINTS.AGENTS.PLANNER_CHAT),
       {
         method: 'POST',
         body: JSON.stringify(request)
@@ -131,7 +131,7 @@ class AIAgentAPI {
    */
   async chatWithConsultant(request: ChatRequest): Promise<ChatResponse> {
     const response = await apiRequest(
-      getFullUrl(API_CONFIG.ENDPOINTS.AI_AGENTS_V2.CONSULTANT_CHAT),
+      getFullUrl(API_CONFIG.ENDPOINTS.AGENTS.CONSULTANT_CHAT),
       {
         method: 'POST',
         body: JSON.stringify(request)
@@ -151,7 +151,7 @@ class AIAgentAPI {
    */
   async chatWithAutoAgent(request: ChatRequest): Promise<ChatResponse> {
     const response = await apiRequest(
-      getFullUrl(API_CONFIG.ENDPOINTS.AI_AGENTS_V2.CHAT),
+      getFullUrl(API_CONFIG.ENDPOINTS.AGENTS.AUTO_CHAT),
       {
         method: 'POST',
         body: JSON.stringify(request)
@@ -171,7 +171,7 @@ class AIAgentAPI {
    */
   async invokePlanner(request: ChatRequest): Promise<ChatResponse> {
     const response = await apiRequest(
-      getFullUrl(API_CONFIG.ENDPOINTS.AI_AGENTS_V2.PLANNER_INVOKE),
+      getFullUrl(API_CONFIG.ENDPOINTS.AGENTS.PLANNER_CHAT),
       {
         method: 'POST',
         body: JSON.stringify(request)
@@ -191,7 +191,7 @@ class AIAgentAPI {
    */
   async getSystemStatus(): Promise<SystemStatusResponse> {
     const response = await apiRequest(
-      getFullUrl(API_CONFIG.ENDPOINTS.AI_AGENTS_V2.STATUS)
+      getFullUrl(API_CONFIG.ENDPOINTS.AGENTS.STATUS)
     );
 
     if (!response.ok) {
@@ -207,7 +207,7 @@ class AIAgentAPI {
    */
   async getSystemInfo(): Promise<SystemInfoResponse> {
     const response = await apiRequest(
-      getFullUrl(API_CONFIG.ENDPOINTS.AI_AGENTS_V2.INFO)
+      getFullUrl(API_CONFIG.ENDPOINTS.AGENTS.INFO)
     );
 
     if (!response.ok) {
@@ -223,7 +223,7 @@ class AIAgentAPI {
    */
   async healthCheck(): Promise<HealthCheckResponse> {
     const response = await apiRequest(
-      getFullUrl(API_CONFIG.ENDPOINTS.AI_AGENTS_V2.HEALTH)
+      getFullUrl(API_CONFIG.ENDPOINTS.AGENTS.HEALTH)
     );
 
     if (!response.ok) {

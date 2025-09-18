@@ -249,7 +249,7 @@ class FileUploadAPI {
     if (tags && tags.length > 0) additionalFields.tags = tags.join(',');
 
     return this.uploadFile(
-      API_CONFIG.ENDPOINTS.FILES.UPLOAD_GENERAL,
+      API_CONFIG.ENDPOINTS.FILES.UPLOAD_MULTIPLE,
       file,
       additionalFields,
       onProgress
