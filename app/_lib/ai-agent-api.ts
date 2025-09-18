@@ -79,6 +79,8 @@ export interface SystemInfoResponse {
 }
 
 export interface HealthCheckResponse {
+  status?: string;
+  message?: string;
   // 健康检查返回null表示健康
 }
 

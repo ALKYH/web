@@ -44,6 +44,12 @@ interface AgentConversation {
   sessionId?: string;
 }
 
+interface Conversation {
+  tutorId: number;
+  tutorName: string;
+  isOnline: boolean;
+}
+
 // 默认智能体配置
 const defaultAgents: AgentConversation[] = [
   {
@@ -72,7 +78,8 @@ export default function AgentChatPage() {
   const router = useRouter();
   const { isAuthenticated, token, initialized, loading } = useAuthStore();
   const [selectedAgent, setSelectedAgent] = useState<AgentConversation | null>(defaultAgents[0]);
-  const [conversations, setConversations] = useState<AgentConversation[]>(defaultAgents);
+  const [agentConversations, setAgentConversations] = useState<AgentConversation[]>(defaultAgents);
+  const [tutorConversations, setTutorConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -105,8 +112,8 @@ export default function AgentChatPage() {
       // TODO: Load conversations from API when MESSAGES endpoint is available
       console.warn('loadConversations: MESSAGES endpoint not available, returning empty conversations');
 
-      // For now, return empty conversations
-      setConversations([]);
+      // For now, keep default agent conversations
+      setAgentConversations(defaultAgents);
       return;
 
       // TODO: Load conversations from API when MESSAGES endpoint is available
@@ -246,12 +253,13 @@ export default function AgentChatPage() {
       isOnline: true
     };
 
-    // Add to conversations if not already there
-    if (!conversations.find(c => c.tutorId === tutor.id)) {
-      setConversations([newConversation, ...conversations]);
+    // Add to tutor conversations if not already there
+    if (!tutorConversations.find(c => c.tutorId === tutor.id)) {
+      setTutorConversations([newConversation, ...tutorConversations]);
     }
 
-    setSelectedTutor(newConversation);
+    // Note: This function is for tutor conversations, but current UI is focused on agents
+    // For now, we'll just update the conversations list
     setMessages([]);
     setSearchQuery('');
     setSearchResults([]);
@@ -300,7 +308,7 @@ export default function AgentChatPage() {
       setCurrentSessionId(response.session_id);
 
       // 更新对话列表中的最后消息
-      setConversations(prev =>
+      setAgentConversations(prev =>
         prev.map(conv =>
           conv.id === selectedAgent.id
             ? { ...conv, lastMessage: response.response, lastMessageTime: new Date() }
@@ -415,17 +423,17 @@ export default function AgentChatPage() {
 
                 {/* Available Agents */}
                 <div className="p-2">
-                  {conversations.length === 0 && !isSearching && (
+                  {agentConversations.length === 0 && !isSearching && (
                     <p className="text-center text-gray-500 py-8">
                       没有可用的智能体
                     </p>
                   )}
-                  {conversations.map(agent => (
+                  {agentConversations.map(agent => (
                     <div
                       key={agent.id}
                       className={`flex items-center gap-3 p-3 mx-3 hover:bg-blue-50 cursor-pointer rounded-lg transition-colors ${selectedAgent?.id === agent.id
-                          ? 'bg-gradient-to-r from-blue-100 to-sky-100 shadow-sm'
-                          : ''
+                        ? 'bg-gradient-to-r from-blue-100 to-sky-100 shadow-sm'
+                        : ''
                         }`}
                       onClick={() => selectAgent(agent)}
                     >
@@ -454,8 +462,8 @@ export default function AgentChatPage() {
                           <Badge
                             variant="outline"
                             className={`text-xs ${agent.agentType === 'study_planner'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-green-500 text-green-600'
+                              ? 'border-blue-500 text-blue-600'
+                              : 'border-green-500 text-green-600'
                               }`}
                           >
                             {agent.agentType === 'study_planner' ? '规划师' : '咨询师'}
@@ -501,8 +509,8 @@ export default function AgentChatPage() {
                       <Badge
                         variant="outline"
                         className={`text-xs ${selectedAgent.agentType === 'study_planner'
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-green-500 text-green-600'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-green-500 text-green-600'
                           }`}
                       >
                         {selectedAgent.agentType === 'study_planner' ? '留学规划师' : '留学咨询师'}
