@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { aiAgentAPI, type AutoChatRequest } from '@/lib/ai-agent-api';
 
 // Client-only component to prevent hydration mismatch
 const ClientTimestamp = ({ date }: { date: Date }) => {
@@ -91,57 +92,69 @@ function AIAdvisorContent() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...messages, userMessage]
-        })
-      });
+      // 使用新的智能体API进行流式对话
+      const chatRequest: AutoChatRequest = {
+        request: {
+          message: messageText,
+          session_id: null // 新会话
+        },
+        agent_type: 'study_planner' // 默认使用留学规划师
+      };
 
-      if (!response.ok) throw new Error('API request failed');
+      const controller = await aiAgentAPI.chatWithAutoAgentStream(
+        chatRequest,
+        (chunk: string) => {
+          // 实时更新助手消息内容
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
 
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No response body');
-
-      // 读取流式响应
-      const decoder = new TextDecoder();
-      let done = false;
-      let assistantMessageContent = '';
-      let assistantMessageAdded = false;
-
-      while (!done) {
-        const { value, done: doneReading } = await reader.read();
-        done = doneReading;
-
-        if (value) {
-          const chunk = decoder.decode(value, { stream: true });
-          assistantMessageContent += chunk;
-
-          // 只有当有内容时才添加/更新助手消息
-          if (assistantMessageContent.trim() && !assistantMessageAdded) {
-            const assistantMessage = {
-              id: (Date.now() + 1).toString(),
-              role: 'assistant' as const,
-              parts: [{ type: 'text' as const, text: assistantMessageContent }]
-            };
-            setMessages(prev => [...prev, assistantMessage]);
-            assistantMessageAdded = true;
-          } else if (assistantMessageAdded) {
-            // 更新现有的助手消息
-            setMessages(prev => {
-              const newMessages = [...prev];
+            if (lastMessage?.role === 'assistant') {
+              // 更新现有助手消息
               newMessages[newMessages.length - 1] = {
-                ...newMessages[newMessages.length - 1],
-                parts: [{ type: 'text' as const, text: assistantMessageContent }]
+                ...lastMessage,
+                parts: [{ type: 'text' as const, text: lastMessage.parts[0].text + chunk }]
               };
-              return newMessages;
-            });
-          }
+            } else {
+              // 添加新的助手消息
+              const assistantMessage = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant' as const,
+                parts: [{ type: 'text' as const, text: chunk }]
+              };
+              newMessages.push(assistantMessage);
+            }
+
+            return newMessages;
+          });
+        },
+        (response) => {
+          // 对话完成
+          console.log('Chat completed:', response);
+        },
+        (error) => {
+          // 处理错误
+          console.error('Chat error:', error);
+          const errorMessage = {
+            id: (Date.now() + 2).toString(),
+            role: 'assistant' as const,
+            parts: [{ type: 'text' as const, text: '抱歉，我现在无法回复，请稍后再试。' }]
+          };
+          setMessages(prev => [...prev, errorMessage]);
         }
-      }
+      );
+
+      // 可以保存controller用于取消请求
+      // setCurrentController(controller);
+
     } catch (error) {
       console.error('Chat error:', error);
+      const errorMessage = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant' as const,
+        parts: [{ type: 'text' as const, text: '抱歉，我现在无法回复，请稍后再试。' }]
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }

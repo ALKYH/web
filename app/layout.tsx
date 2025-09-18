@@ -10,16 +10,6 @@ import { FirstVisitModal } from '@/components/first-visit/first-visit-modal';
 import { ConfigProvider } from 'antd';
 import antdTheme from '@/lib/antd-theme';
 
-// 暂时抑制React 19兼容性警告
-if (typeof window !== 'undefined') {
-  const originalWarn = console.warn;
-  console.warn = (...args) => {
-    if (args[0]?.includes?.('antd: compatible')) {
-      return;
-    }
-    originalWarn(...args);
-  };
-}
 
 const geistSans = localFont({
   src: '../fonts/GeistVariableVF.woff2',
