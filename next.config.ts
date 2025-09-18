@@ -16,17 +16,10 @@ const nextConfig: NextConfig = {
     ]
   },
 
-  // 开发环境代理配置
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://123.57.174.186:8000/api/:path*' // 代理到后端API
-      }
-    ];
-  },
+  // Ant Design配置
+  transpilePackages: ['antd'],
 
-  // 生产环境代理配置（Vercel）
+  // CORS头配置
   async headers() {
     return [
       {

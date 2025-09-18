@@ -2,6 +2,7 @@
 
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { InputRef } from 'antd';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -40,7 +41,7 @@ function SearchField({
     []
   );
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<InputRef>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Mock suggestions data
@@ -81,8 +82,8 @@ function SearchField({
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
+        inputRef.current?.input &&
+        !inputRef.current.input.contains(event.target as Node)
       ) {
         setOpen(false);
       }
@@ -138,7 +139,7 @@ function SearchField({
       <div className="relative">
         <Input
           ref={inputRef}
-          type="search"
+          type="text"
           placeholder="搜索专业或大学..."
           className="w-full py-6 px-4 text-base bg-white"
           value={searchTerm}

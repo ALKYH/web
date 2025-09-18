@@ -7,6 +7,19 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { AuthInitializer } from '@/components/auth/auth-initializer';
 import ChatWidget from '@/components/ui/chat-widget';
 import { FirstVisitModal } from '@/components/first-visit/first-visit-modal';
+import { ConfigProvider } from 'antd';
+import antdTheme from '@/lib/antd-theme';
+
+// 暂时抑制React 19兼容性警告
+if (typeof window !== 'undefined') {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    if (args[0]?.includes?.('antd: compatible')) {
+      return;
+    }
+    originalWarn(...args);
+  };
+}
 
 const geistSans = localFont({
   src: '../fonts/GeistVariableVF.woff2',
@@ -38,13 +51,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthInitializer>
-          <Navbar />
-          <NuqsAdapter>{children}</NuqsAdapter>
-          <Footer />
-          <ChatWidget />
-          <FirstVisitModal />
-        </AuthInitializer>
+        <ConfigProvider theme={antdTheme}>
+          <AuthInitializer>
+            <Navbar />
+            <NuqsAdapter>{children}</NuqsAdapter>
+            <Footer />
+            <ChatWidget />
+            <FirstVisitModal />
+          </AuthInitializer>
+        </ConfigProvider>
       </body>
     </html>
   );

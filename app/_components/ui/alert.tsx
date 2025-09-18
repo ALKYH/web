@@ -1,59 +1,85 @@
-import * as React from 'react';
-import { cva, type VariantProps } from 'class-variance-authority';
-
+import React from 'react';
+import { Alert as AntAlert, AlertProps as AntAlertProps } from 'antd';
 import { cn } from '@/lib/utils';
 
-const alertVariants = cva(
-  'relative w-full rounded-lg border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&>svg~*]:pl-7',
-  {
-    variants: {
-      variant: {
-        default: 'bg-background text-foreground',
-        destructive:
-          'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive'
-      }
-    },
-    defaultVariants: {
-      variant: 'default'
-    }
+// Shadcn/ui Alert变体类型
+type ShadcnVariant = 'default' | 'destructive';
+
+// 扩展的Alert属性
+interface AlertProps extends Omit<AntAlertProps, 'type'> {
+  variant?: ShadcnVariant;
+  className?: string;
+  children?: React.ReactNode;
+}
+
+// 变体映射函数
+const getAntAlertType = (variant: ShadcnVariant): AntAlertProps['type'] => {
+  const variantMap: Record<ShadcnVariant, AntAlertProps['type']> = {
+    'default': 'info',
+    'destructive': 'error'
+  };
+  return variantMap[variant];
+};
+
+// 主Alert组件
+export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
+  ({ variant = 'default', className, children, ...props }, ref) => {
+    const type = getAntAlertType(variant);
+    
+    return (
+      <div ref={ref}>
+        <AntAlert
+          type={type}
+          message={children}
+          className={cn(
+            'w-full',
+            variant === 'default' && 'border-border',
+            variant === 'destructive' && 'border-destructive/50',
+            className
+          )}
+          {...props}
+        />
+      </div>
+    );
   }
 );
 
-const Alert = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
->(({ className, variant, ...props }, ref) => (
-  <div
-    ref={ref}
-    role="alert"
-    className={cn(alertVariants({ variant }), className)}
-    {...props}
-  />
-));
 Alert.displayName = 'Alert';
 
-const AlertTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h5
-    ref={ref}
-    className={cn('mb-1 font-medium leading-none tracking-tight', className)}
-    {...props}
-  />
-));
+// AlertTitle组件 - 兼容性组件
+interface AlertTitleProps {
+  children?: React.ReactNode;
+  className?: string;
+}
+
+export const AlertTitle: React.FC<AlertTitleProps> = ({ 
+  children,
+  className 
+}) => {
+  return (
+    <h5 className={cn('mb-1 font-medium leading-none tracking-tight', className)}>
+      {children}
+    </h5>
+  );
+};
+
 AlertTitle.displayName = 'AlertTitle';
 
-const AlertDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn('text-sm [&_p]:leading-relaxed', className)}
-    {...props}
-  />
-));
-AlertDescription.displayName = 'AlertDescription';
+// AlertDescription组件 - 兼容性组件
+interface AlertDescriptionProps {
+  children?: React.ReactNode;
+  className?: string;
+}
 
-export { Alert, AlertTitle, AlertDescription };
+export const AlertDescription: React.FC<AlertDescriptionProps> = ({ 
+  children,
+  className 
+}) => {
+  return (
+    <div className={cn('text-sm [&_p]:leading-relaxed', className)}>
+      {children}
+    </div>
+  );
+};
+
+AlertDescription.displayName = 'AlertDescription';

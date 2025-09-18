@@ -1,19 +1,40 @@
-import * as React from 'react';
-
+import React from 'react';
+import { Input } from 'antd';
+import type { TextAreaProps as AntTextAreaProps, TextAreaRef } from 'antd/es/input/TextArea';
 import { cn } from '@/lib/utils';
 
-function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
-  return (
-    <textarea
-      data-slot="textarea"
-      className={cn(
-        'border-input placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive flex min-h-19.5 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
-        className
-      )}
-      {...props}
-    />
-  );
-}
-Textarea.displayName = 'Textarea';
+const { TextArea: AntTextArea } = Input;
 
-export { Textarea };
+// 扩展的Textarea属性
+interface TextareaProps extends AntTextAreaProps {
+  className?: string;
+}
+
+// 获取自定义样式
+const getCustomStyles = (className?: string) => {
+  let customClass = '';
+  
+  // 保留原有的最小高度
+  customClass += ' !min-h-[4.875rem]'; // min-h-19.5 = 78px = 4.875rem
+  
+  // 保留过渡效果
+  customClass += ' transition-all duration-200';
+  
+  return cn(customClass, className);
+};
+
+export const Textarea = React.forwardRef<TextAreaRef, TextareaProps>(
+  ({ className, ...props }, ref) => {
+    const customClassName = getCustomStyles(className);
+    
+    return (
+      <AntTextArea
+        ref={ref}
+        className={customClassName}
+        {...props}
+      />
+    );
+  }
+);
+
+Textarea.displayName = 'Textarea';

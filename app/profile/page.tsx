@@ -144,7 +144,7 @@ export default function ProfilePage() {
 
   if (loading || dataLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -161,7 +161,7 @@ export default function ProfilePage() {
 
   if (dataError) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <p className="text-red-600 mb-4">{dataError}</p>
@@ -190,7 +190,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-6">
           <Card>
