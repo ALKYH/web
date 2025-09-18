@@ -3,6 +3,68 @@
 import Image from 'next/image';
 import SearchField from '@/components/search-field';
 import { CheckCircle, Shield, Clock, ChevronRight } from 'lucide-react';
+import React from 'react';
+
+type CarouselItem = { title: string; sub: string; image: string };
+
+function Carousel3D({
+  items,
+  cardWidth,
+  cardHeight
+}: {
+  items: CarouselItem[];
+  cardWidth: number;
+  cardHeight: number;
+}) {
+  const [idx, setIdx] = React.useState(0);
+  const len = items.length;
+
+  const cls = React.useCallback(
+    (i: number) => {
+      const o = (i - idx + len) % len;
+      if (o === 0) return 'pp-center';
+      if (o === 1) return 'pp-right-1';
+      if (o === 2) return 'pp-right-2';
+      if (o === len - 1) return 'pp-left-1';
+      if (o === len - 2) return 'pp-left-2';
+      return 'pp-hidden';
+    },
+    [idx, len]
+  );
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') setIdx(v => (v - 1 + len) % len);
+      if (e.key === 'ArrowRight') setIdx(v => (v + 1) % len);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [len]);
+
+  return (
+    <div className="pp-carousel">
+      <button className="pp-nav pp-left" onClick={() => setIdx(v => (v - 1 + len) % len)}>{'<'}</button>
+      <div className="pp-track">
+        {items.map((it, i) => (
+          <div key={i} className={`pp-card ${cls(i)}`} onClick={() => setIdx(i)}>
+            <Image src={it.image} alt={it.title} width={cardWidth} height={cardHeight} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+        ))}
+      </div>
+      <button className="pp-nav pp-right" onClick={() => setIdx(v => (v + 1) % len)}>{'>'}</button>
+
+      <div className="pp-info">
+        <div className="pp-name">{items[idx]?.title}</div>
+        <div className="pp-sub">{items[idx]?.sub}</div>
+        <div className="pp-dots">
+          {items.map((_, i) => (
+            <div key={i} className={`pp-dot ${i === idx ? 'pp-active' : ''}`} onClick={() => setIdx(i)} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Homepage() {
   const destinations = [
@@ -294,38 +356,15 @@ export default function Homepage() {
             </p>
           </div>
 
-          <div className="relative">
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
-              {destinations.map((destination, index) => (
-                <div
-                  key={index}
-                  className="flex-shrink-0 w-64 cursor-pointer group"
-                >
-                  <div className="relative overflow-hidden rounded-lg mb-3">
-                    <Image
-                      src={destination.image}
-                      alt={destination.name}
-                      width={256}
-                      height={192}
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-lg mb-1">
-                      {destination.name}
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      {destination.properties}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button className="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
-              <ChevronRight className="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
+          <Carousel3D
+            items={destinations.map((d) => ({
+              title: d.name,
+              sub: d.properties,
+              image: d.image
+            }))}
+            cardWidth={256}
+            cardHeight={192}
+          />
         </div>
       </section>
 
@@ -337,39 +376,15 @@ export default function Homepage() {
             <p className="text-gray-600 text-base">世界顶尖院校申请专业指导</p>
           </div>
 
-          <div className="relative">
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
-              {popularSchools.map((school, index) => (
-                <div
-                  key={index}
-                  className="flex-shrink-0 w-48 cursor-pointer group"
-                >
-                  <div className="relative overflow-hidden rounded-lg mb-3">
-                    <Image
-                      src={school.image}
-                      alt={school.name}
-                      width={192}
-                      height={128}
-                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-base mb-1">
-                      {school.name}
-                    </h3>
-                    <p className="text-gray-500 text-sm mb-1">
-                      {school.location}
-                    </p>
-                    <p className="text-gray-600 text-sm">{school.tutors}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button className="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
-              <ChevronRight className="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
+          <Carousel3D
+            items={popularSchools.map((s) => ({
+              title: s.name,
+              sub: `${s.location} · ${s.tutors}`,
+              image: s.image
+            }))}
+            cardWidth={192}
+            cardHeight={128}
+          />
         </div>
       </section>
     </div>
