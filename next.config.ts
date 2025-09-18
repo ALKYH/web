@@ -14,6 +14,39 @@ const nextConfig: NextConfig = {
         port: '8000'
       }
     ]
+  },
+
+  // 开发环境代理配置
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://123.57.174.186:8000/api/:path*'
+      }
+    ];
+  },
+
+  // 生产环境代理配置（Vercel）
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*'
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS'
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization'
+          }
+        ]
+      }
+    ];
   }
 };
 

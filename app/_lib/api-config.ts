@@ -1,5 +1,6 @@
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000',
+  // 使用代理路径，避免跨域问题
+  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || '/api',
 
   ENDPOINTS: {
     AUTH: {
