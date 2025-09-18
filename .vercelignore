@@ -1,0 +1,36 @@
+# Backend Python code - not needed for frontend deployment
+backend/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python virtual environments
+.env
+.venv
+env/
+venv/
+
+# Logs
+*.log
+backend/server.log
+backend/startup.log
+
+# Documentation (optional - can be excluded to reduce build size)
+docs/
+
+# Test files
+backend/tests/
+backend/test_*.py
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

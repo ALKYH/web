@@ -101,7 +101,7 @@ function AIAdvisorContent() {
         agent_type: 'study_planner' // 默认使用留学规划师
       };
 
-      const controller = await aiAgentAPI.chatWithAutoAgentStream(
+      await aiAgentAPI.chatWithAutoAgentStream(
         chatRequest,
         (chunk: string) => {
           // 实时更新助手消息内容

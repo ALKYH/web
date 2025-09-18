@@ -31,11 +31,7 @@ interface AvatarImageProps {
   className?: string;
 }
 
-export const AvatarImage: React.FC<AvatarImageProps> = ({ 
-  src: _src, 
-  alt: _alt,
-  className: _className 
-}) => {
+export const AvatarImage: React.FC<AvatarImageProps> = () => {
   // 这是一个兼容性组件，实际的src会被传递给父Avatar组件
   return null;
 };
@@ -48,10 +44,7 @@ interface AvatarFallbackProps {
   className?: string;
 }
 
-export const AvatarFallback: React.FC<AvatarFallbackProps> = ({ 
-  children: _children,
-  className: _className 
-}) => {
+export const AvatarFallback: React.FC<AvatarFallbackProps> = () => {
   // 这是一个兼容性组件，实际的fallback内容会被传递给父Avatar组件
   return null;
 };
