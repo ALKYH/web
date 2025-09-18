@@ -1,28 +1,30 @@
-'use client';
-
-import * as React from 'react';
-import * as SeparatorPrimitive from '@radix-ui/react-separator';
-
+import React from 'react';
+import { Divider, DividerProps } from 'antd';
 import { cn } from '@/lib/utils';
 
-function Separator({
-  className,
-  orientation = 'horizontal',
-  decorative = true,
-  ...props
-}: React.ComponentProps<typeof SeparatorPrimitive.Root>) {
-  return (
-    <SeparatorPrimitive.Root
-      data-slot="separator"
-      decorative={decorative}
-      orientation={orientation}
-      className={cn(
-        'bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px',
-        className
-      )}
-      {...props}
-    />
-  );
+// 扩展的Separator属性
+interface SeparatorProps extends Omit<DividerProps, 'type' | 'orientation'> {
+  orientation?: 'horizontal' | 'vertical';
+  decorative?: boolean;
+  className?: string;
 }
 
-export { Separator };
+export const Separator = React.forwardRef<HTMLDivElement, SeparatorProps>(
+  ({ orientation = 'horizontal', decorative: _decorative = true, className, ...props }, ref) => {
+    return (
+      <div ref={ref}>
+        <Divider
+          type={orientation === 'horizontal' ? 'horizontal' : 'vertical'}
+          className={cn(
+            'shrink-0',
+            orientation === 'horizontal' ? 'w-full' : 'h-full',
+            className
+          )}
+          {...props}
+        />
+      </div>
+    );
+  }
+);
+
+Separator.displayName = 'Separator';

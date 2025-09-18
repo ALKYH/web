@@ -107,7 +107,7 @@ export default async function TutorDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
       <Link
         href="/tutor"
         className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"

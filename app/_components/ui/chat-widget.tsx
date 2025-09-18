@@ -2,9 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Bot, User, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button, FloatButton, Input, Card } from 'antd';
 import ReactMarkdown from 'react-markdown';
 
 interface ChatWidgetProps {
@@ -175,31 +173,44 @@ export default function ChatWidget({
     <div className={`fixed ${positionClass} z-50 flex flex-col items-end`}>
       {/* Chat Widget */}
       {isOpen && (
-        <Card className="w-80 h-[500px] mb-4 shadow-2xl animate-in slide-in-from-bottom-2 flex flex-col">
-          <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-white rounded-t-lg p-3 flex-shrink-0">
+        <Card 
+          className="w-80 h-[500px] mb-4 shadow-2xl animate-in slide-in-from-bottom-2 flex flex-col"
+          title={
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <Bot className="h-5 w-5" />
+                  <Bot className="h-5 w-5 text-white" />
                   <div className="absolute -bottom-1 -right-1 h-2 w-2 bg-green-400 rounded-full border border-white"></div>
                 </div>
                 <div>
-                  <CardTitle className="text-sm">学长帮 AI 助手</CardTitle>
+                  <div className="text-sm text-white">学长帮 AI 助手</div>
                   <p className="text-xs text-white/80">在线 · 随时为您服务</p>
                 </div>
               </div>
               <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-white hover:bg-white/20"
+                type="text"
+                size="small"
+                icon={<X className="h-4 w-4" />}
+                className="text-white hover:bg-white/20 border-none"
                 onClick={() => setIsOpen(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              />
             </div>
-          </CardHeader>
-
-          <CardContent className="p-0 flex flex-col flex-1 min-h-0">
+          }
+          styles={{
+            header: {
+              background: 'linear-gradient(to right, #bae0ff, rgba(186, 224, 255, 0.8))',
+              borderRadius: '12px 12px 0 0',
+              padding: '12px'
+            },
+            body: { 
+              padding: 0, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              flex: 1, 
+              minHeight: 0 
+            }
+          }}
+        >
             {/* Messages */}
             <div className="flex-1 p-3 overflow-y-auto space-y-3" style={{ minHeight: 0 }}>
               {messages.length === 1 && (
@@ -335,41 +346,34 @@ export default function ChatWidget({
                   onKeyDown={handleKeyDown}
                   placeholder="输入您的留学问题..."
                   disabled={isLoading}
-                  className="text-xs"
+                  size="small"
                 />
                 <Button
-                  size="icon"
+                  type="primary"
+                  size="small"
+                  icon={isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                   onClick={handleSendMessage}
                   disabled={!input.trim() || isLoading}
-                  className="flex-shrink-0 h-8 w-8"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Send className="h-3 w-3" />
-                  )}
-                </Button>
+                  className="flex-shrink-0"
+                />
               </div>
-              <p className="text-xs text-center text-muted-foreground mt-2">
+              <p className="text-xs text-center text-gray-500 mt-2">
                 按 Enter 发送消息 · AI可能会出错，请验证重要信息
               </p>
             </div>
-          </CardContent>
         </Card>
       )}
 
-      {/* Toggle Button */}
-      <Button
+      {/* FloatButton */}
+      <FloatButton
+        icon={isOpen ? <X /> : <MessageSquare />}
         onClick={() => setIsOpen(!isOpen)}
-        size="icon"
-        className="h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-primary/80 hover:shadow-xl transition-all duration-200"
-      >
-        {isOpen ? (
-          <X className="h-6 w-6" />
-        ) : (
-          <MessageSquare className="h-6 w-6" />
-        )}
-      </Button>
+        tooltip={isOpen ? "关闭聊天" : "打开AI助手"}
+        style={{
+          width: 56,
+          height: 56,
+        }}
+      />
     </div>
   );
 }

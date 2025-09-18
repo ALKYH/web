@@ -16,6 +16,9 @@ const nextConfig: NextConfig = {
     ]
   },
 
+  // Ant Design配置
+  transpilePackages: ['antd'],
+
   // CORS头配置
   async headers() {
     return [

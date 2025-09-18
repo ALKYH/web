@@ -345,7 +345,7 @@ export default function TutorChatPage() {
   }
 
   return (
-    <div className="container max-w-6xl mx-auto px-4 py-8 h-[calc(100vh-100px)]">
+    <div className="container max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-100px)]">
       <Card className="h-full p-0 border-blue-200 border-2 shadow-lg">
         <div className="flex h-full">
           {/* Conversations List */}

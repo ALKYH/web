@@ -143,7 +143,7 @@ export default function Homepage() {
 
       {/* AI Assistant Feature Section */}
       <section className="py-16 bg-gradient-to-br from-primary/5 via-background to-primary/10">
-        <div className="w-full max-w-6xl mx-auto px-4">
+        <div className="w-full max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="relative">
@@ -284,7 +284,7 @@ export default function Homepage() {
 
       {/* Popular Areas Section */}
       <section className="py-16 bg-gray-50 ">
-        <div className="w-full max-w-6xl mx-auto px-4">
+        <div className="w-full max-w-7xl mx-auto px-4">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               热门留学区域
@@ -331,7 +331,7 @@ export default function Homepage() {
 
       {/* Popular Schools Section */}
       <section className="py-16 bg-white">
-        <div className="w-full max-w-6xl mx-auto px-4">
+        <div className="w-full max-w-7xl mx-auto px-4">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">热门学校</h2>
             <p className="text-gray-600 text-base">世界顶尖院校申请专业指导</p>

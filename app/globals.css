@@ -1,3 +1,7 @@
+/* Ant Design 样式 */
+@import 'antd/dist/reset.css';
+
+/* Tailwind CSS */
 @import 'tailwindcss';
 
 @import 'tw-animate-css';
