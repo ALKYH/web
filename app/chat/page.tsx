@@ -21,72 +21,58 @@ import { searchMentors, type MentorPublic } from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
 import { API_CONFIG, getFullUrl } from '@/lib/api-config';
+import { aiAgentAPI, type AutoChatRequest, type ChatRequest, type ChatResponse } from '@/lib/ai-agent-api';
 
 interface Message {
   id: string;
   content: string;
-  sender: 'user' | 'tutor';
+  sender: 'user' | 'agent';
   timestamp: Date;
-  tutorId?: number;
-  tutorName?: string;
+  agentType?: 'study_planner' | 'study_consultant';
+  agentName?: string;
+  sessionId?: string;
 }
 
-interface Conversation {
-  tutorId: number;
-  tutorName: string;
-  tutorAvatar?: string;
+interface AgentConversation {
+  id: string;
+  agentType: 'study_planner' | 'study_consultant';
+  agentName: string;
   lastMessage?: string;
   lastMessageTime?: Date;
   unreadCount?: number;
-  isOnline?: boolean;
+  isActive?: boolean;
+  sessionId?: string;
 }
 
-// Default tutors data from tutors.json
-const defaultTutors: Conversation[] = [
+// 默认智能体配置
+const defaultAgents: AgentConversation[] = [
   {
-    tutorId: 1,
-    tutorName: 'Dr. Sarah Chen',
-    tutorAvatar: '/avatars/sarah-chen.jpg',
-    lastMessage: '我专注于 STEM 领域申请。',
+    id: 'planner-1',
+    agentType: 'study_planner',
+    agentName: '留学规划师',
+    lastMessage: '我可以帮你制定个性化的留学申请策略',
     lastMessageTime: new Date(Date.now() - 1000 * 60 * 31), // 31 minutes ago
-    unreadCount: 2,
-    isOnline: true
+    unreadCount: 0,
+    isActive: true,
+    sessionId: undefined
   },
   {
-    tutorId: 2,
-    tutorName: 'Prof. Michael Johnson',
-    tutorAvatar: '/avatars/michael-johnson.jpg',
-    lastMessage: '有什么可以帮助你的吗？',
+    id: 'consultant-1',
+    agentType: 'study_consultant',
+    agentName: '留学咨询师',
+    lastMessage: '我可以解答你的留学疑问',
     lastMessageTime: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
     unreadCount: 0,
-    isOnline: true
-  },
-  {
-    tutorId: 3,
-    tutorName: 'Dr. Emily Rodriguez',
-    tutorAvatar: '/avatars/emily-rodriguez.jpg',
-    lastMessage: '申请材料已经准备好了吗？',
-    lastMessageTime: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    unreadCount: 1,
-    isOnline: false
-  },
-  {
-    tutorId: 4,
-    tutorName: 'Dr. James Thompson',
-    tutorAvatar: '/avatars/james-thompson.jpg',
-    lastMessage: '推荐信的事情我来帮你处理',
-    lastMessageTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 days ago
-    unreadCount: 0,
-    isOnline: false
+    isActive: true,
+    sessionId: undefined
   }
 ];
 
-export default function TutorChatPage() {
+export default function AgentChatPage() {
   const router = useRouter();
   const { isAuthenticated, token, initialized, loading } = useAuthStore();
-  const [selectedTutor, setSelectedTutor] = useState<Conversation | null>(null);
-  const [conversations, setConversations] =
-    useState<Conversation[]>(defaultTutors);
+  const [selectedAgent, setSelectedAgent] = useState<AgentConversation | null>(defaultAgents[0]);
+  const [conversations, setConversations] = useState<AgentConversation[]>(defaultAgents);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -94,6 +80,7 @@ export default function TutorChatPage() {
   const [searchResults, setSearchResults] = useState<MentorPublic[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -271,70 +258,77 @@ export default function TutorChatPage() {
   };
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !selectedTutor) return;
+    if (!inputMessage.trim() || !selectedAgent) return;
 
-    const newMessage: Message = {
+    const userMessage: Message = {
       id: String(Date.now()),
       content: inputMessage,
       sender: 'user',
       timestamp: new Date(),
-      tutorId: selectedTutor.tutorId,
-      tutorName: selectedTutor.tutorName
+      agentType: selectedAgent.agentType,
+      agentName: selectedAgent.agentName,
+      sessionId: currentSessionId || undefined
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages(prev => [...prev, userMessage]);
     const currentInput = inputMessage;
     setInputMessage('');
-
-    // Simulate tutor typing
     setIsTyping(true);
 
     try {
-      // TODO: Uncomment when MESSAGES endpoint is available
-      // const response = await fetch(
-      //   getFullUrl(API_CONFIG.ENDPOINTS.MESSAGES.LIST),
-      //   {
-      //     method: 'POST',
-      //     headers: {
-      //       Authorization: `Bearer ${token}`,
-      //       'Content-Type': 'application/json'
-      //     },
-      //     body: JSON.stringify({
-      //       recipient_id: selectedTutor.tutorId,
-      //       content: currentInput,
-      //       conversation_id: selectedTutor.tutorId
-      //     })
-      //   }
-      // );
+      const chatRequest: AutoChatRequest = {
+        request: {
+          message: currentInput,
+          session_id: currentSessionId
+        },
+        agent_type: selectedAgent.agentType
+      };
 
-      // if (!response.ok) {
-      //   console.error('Failed to send message');
-      // }
+      const response = await aiAgentAPI.chatWithAutoAgent(chatRequest);
 
-      console.log('Message sent (simulated):', currentInput);
+      const agentMessage: Message = {
+        id: String(Date.now() + 1),
+        content: response.response,
+        sender: 'agent',
+        timestamp: new Date(),
+        agentType: response.agent_type as 'study_planner' | 'study_consultant',
+        agentName: selectedAgent.agentName,
+        sessionId: response.session_id || undefined
+      };
 
-      // Simulate tutor response after a delay
-      setTimeout(() => {
-        const tutorMessage: Message = {
-          id: String(Date.now() + 1),
-          content: `感谢您的消息！我会尽快回复您。`,
-          sender: 'tutor',
-          timestamp: new Date(),
-          tutorId: selectedTutor.tutorId,
-          tutorName: selectedTutor.tutorName
-        };
-        setMessages(prev => [...prev, tutorMessage]);
-        setIsTyping(false);
-      }, 2000);
+      setMessages(prev => [...prev, agentMessage]);
+      setCurrentSessionId(response.session_id);
+
+      // 更新对话列表中的最后消息
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === selectedAgent.id
+            ? { ...conv, lastMessage: response.response, lastMessageTime: new Date() }
+            : conv
+        )
+      );
+
     } catch (error) {
       console.error('Failed to send message:', error);
+      const errorMessage: Message = {
+        id: String(Date.now() + 2),
+        content: '抱歉，我现在无法回复，请稍后再试。',
+        sender: 'agent',
+        timestamp: new Date(),
+        agentType: selectedAgent.agentType,
+        agentName: selectedAgent.agentName,
+        sessionId: currentSessionId || undefined
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
     }
   };
 
-  const selectConversation = (conversation: Conversation) => {
-    setSelectedTutor(conversation);
-    loadMessages(conversation.tutorId);
+  const selectAgent = (agent: AgentConversation) => {
+    setSelectedAgent(agent);
+    setCurrentSessionId(agent.sessionId || null);
+    setMessages([]); // 清空消息，开始新对话
   };
 
   const formatTime = (date: Date) => {
@@ -371,12 +365,12 @@ export default function TutorChatPage() {
           <div className="w-full md:w-1/3 h-full flex flex-col">
             <CardHeader className="py-0">
               <CardTitle className="text-lg pt-4 bg-gradient-to-r from-blue-600 to-sky-600 bg-clip-text text-transparent">
-                导师对话
+                AI智能体对话
               </CardTitle>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="搜索导师..."
+                  placeholder="搜索智能体..."
                   className="pl-10 pr-4"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
@@ -419,54 +413,63 @@ export default function TutorChatPage() {
                   </div>
                 )}
 
-                {/* Existing Conversations */}
+                {/* Available Agents */}
                 <div className="p-2">
                   {conversations.length === 0 && !isSearching && (
                     <p className="text-center text-gray-500 py-8">
-                      搜索导师开始对话
+                      没有可用的智能体
                     </p>
                   )}
-                  {conversations.map(conversation => (
+                  {conversations.map(agent => (
                     <div
-                      key={conversation.tutorId}
-                      className={`flex items-center gap-3 p-3 mx-3 hover:bg-blue-50 cursor-pointer rounded-lg transition-colors ${selectedTutor?.tutorId === conversation.tutorId
-                        ? 'bg-gradient-to-r from-blue-100 to-sky-100 shadow-sm'
-                        : ''
+                      key={agent.id}
+                      className={`flex items-center gap-3 p-3 mx-3 hover:bg-blue-50 cursor-pointer rounded-lg transition-colors ${selectedAgent?.id === agent.id
+                          ? 'bg-gradient-to-r from-blue-100 to-sky-100 shadow-sm'
+                          : ''
                         }`}
-                      onClick={() => selectConversation(conversation)}
+                      onClick={() => selectAgent(agent)}
                     >
                       <div className="relative">
                         <Avatar>
-                          <AvatarImage src={conversation.tutorAvatar} />
-                          <AvatarFallback>
-                            {conversation.tutorName[0]}
+                          <AvatarFallback className="bg-gradient-to-r from-blue-500 to-sky-500 text-white">
+                            {agent.agentType === 'study_planner' ? '📚' : '💬'}
                           </AvatarFallback>
                         </Avatar>
-                        {conversation.isOnline && (
+                        {agent.isActive && (
                           <Circle className="absolute bottom-0 right-0 h-3 w-3 fill-emerald-500 text-emerald-500 animate-pulse" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <p className="font-medium truncate">
-                            {conversation.tutorName}
+                            {agent.agentName}
                           </p>
-                          {conversation.lastMessageTime && (
+                          {agent.lastMessageTime && (
                             <span className="text-xs text-gray-500">
-                              {formatTime(conversation.lastMessageTime)}
+                              {formatTime(agent.lastMessageTime)}
                             </span>
                           )}
                         </div>
-                        {conversation.lastMessage && (
-                          <p className="text-sm text-gray-500 truncate">
-                            {conversation.lastMessage}
-                          </p>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${agent.agentType === 'study_planner'
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-green-500 text-green-600'
+                              }`}
+                          >
+                            {agent.agentType === 'study_planner' ? '规划师' : '咨询师'}
+                          </Badge>
+                          {agent.lastMessage && (
+                            <p className="text-sm text-gray-500 truncate flex-1">
+                              {agent.lastMessage}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      {conversation.unreadCount &&
-                        conversation.unreadCount > 0 ? (
+                      {agent.unreadCount && agent.unreadCount > 0 ? (
                         <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white border-0 rounded-full">
-                          {conversation.unreadCount}
+                          {agent.unreadCount}
                         </Badge>
                       ) : null}
                     </div>
@@ -484,25 +487,30 @@ export default function TutorChatPage() {
 
           {/* Chat Area */}
           <div className="flex-1 h-full flex flex-col">
-            {selectedTutor ? (
+            {selectedAgent ? (
               <>
                 <div className="flex items-center p-4 border-b-2 border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50">
                   <Avatar className="h-10 w-10 mr-3">
-                    <AvatarImage src={selectedTutor.tutorAvatar} />
-                    <AvatarFallback>
-                      {selectedTutor.tutorName[0]}
+                    <AvatarFallback className="bg-gradient-to-r from-blue-500 to-sky-500 text-white">
+                      {selectedAgent.agentType === 'study_planner' ? '📚' : '💬'}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h2 className="font-semibold">{selectedTutor.tutorName}</h2>
-                    <p
-                      className={`text-xs font-medium ${selectedTutor.isOnline
-                        ? 'text-emerald-600'
-                        : 'text-gray-500'
-                        }`}
-                    >
-                      {selectedTutor.isOnline ? '🟢 在线' : '⚫ 离线'}
-                    </p>
+                    <h2 className="font-semibold">{selectedAgent.agentName}</h2>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${selectedAgent.agentType === 'study_planner'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-green-500 text-green-600'
+                          }`}
+                      >
+                        {selectedAgent.agentType === 'study_planner' ? '留学规划师' : '留学咨询师'}
+                      </Badge>
+                      <p className="text-xs text-emerald-600 font-medium">
+                        🟢 在线
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -514,7 +522,7 @@ export default function TutorChatPage() {
                       </div>
                     ) : messages.length === 0 ? (
                       <div className="flex items-center justify-center h-full">
-                        <p className="text-gray-500">开始与导师对话吧！</p>
+                        <p className="text-gray-500">开始与AI智能体对话吧！</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -626,7 +634,7 @@ export default function TutorChatPage() {
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
                   <User className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">选择一个导师开始对话</p>
+                  <p className="text-gray-500">选择一个AI智能体开始对话</p>
                 </div>
               </div>
             )}
