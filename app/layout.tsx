@@ -9,6 +9,7 @@ import ChatWidget from '@/components/ui/chat-widget';
 import { FirstVisitModal } from '@/components/first-visit/first-visit-modal';
 import { ConfigProvider } from 'antd';
 import antdTheme from '@/lib/antd-theme';
+import StyledComponentsRegistry from '@/lib/AntdRegistry';
 
 
 const geistSans = localFont({
@@ -41,15 +42,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ConfigProvider theme={antdTheme}>
-          <AuthInitializer>
-            <Navbar />
-            <NuqsAdapter>{children}</NuqsAdapter>
-            <Footer />
-            <ChatWidget />
-            <FirstVisitModal />
-          </AuthInitializer>
-        </ConfigProvider>
+        <StyledComponentsRegistry>
+          <ConfigProvider theme={antdTheme} wave={{ disabled: true }}>
+            <AuthInitializer>
+              <Navbar />
+              <NuqsAdapter>{children}</NuqsAdapter>
+              <Footer />
+              <ChatWidget />
+              <FirstVisitModal />
+            </AuthInitializer>
+          </ConfigProvider>
+        </StyledComponentsRegistry>
       </body>
     </html>
   );
