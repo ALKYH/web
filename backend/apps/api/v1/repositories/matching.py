@@ -183,18 +183,10 @@ async def save_matching_result(db: DatabaseAdapter, request_id: str, student_id:
 
 
 async def get_matching_history(db: DatabaseAdapter, student_user_id: UUID, limit: int = 20) -> List[MatchingHistory]:
-    """获取匹配历史（使用mentorships表）"""
-    query = """
-        SELECT
-            m.id, m.student_id, m.mentor_id, m.status, m.created_at, m.updated_at,
-            0.0 as match_score  -- 简化实现，没有匹配分数字段
-        FROM mentorships m
-        WHERE m.student_id = $1
-        ORDER BY m.created_at DESC
-        LIMIT $2
-    """
-    rows = await db.fetch_all(query, student_user_id, limit)
-    return [MatchingHistory(**row) for row in rows]
+    """获取匹配历史（mentorship功能已移除，暂时返回空列表）"""
+    # 由于 mentorship 功能已被移除，暂时返回空列表
+    # 如需恢复匹配历史功能，需要重新设计数据结构
+    return []
 
 
 # ============ 高级筛选 ============

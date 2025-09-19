@@ -152,3 +152,55 @@ async def update_wallet_balance_by_transaction(
     return await transaction_repo.update_wallet_balance_by_id(
         db, wallet_id, amount
     )
+
+
+async def cancel_order(
+    db: DatabaseAdapter,
+    order_id: UUID,
+    user_id: UUID
+) -> bool:
+    """取消订单"""
+    return await transaction_repo.cancel_order(db, order_id, user_id)
+
+
+async def update_user_wallet(
+    db: DatabaseAdapter,
+    wallet_data: UserWalletUpdate,
+    user_id: UUID
+) -> Optional[UserWallet]:
+    """更新用户钱包"""
+    return await transaction_repo.update_user_wallet(db, wallet_data, user_id)
+
+
+async def get_financial_stats(db: DatabaseAdapter, user_id: UUID) -> dict:
+    """获取财务统计信息"""
+    return await transaction_repo.get_financial_stats(db, user_id)
+
+
+async def pay_order(
+    db: DatabaseAdapter,
+    order_id: UUID,
+    user_id: UUID
+) -> tuple[bool, str]:
+    """支付订单"""
+    return await transaction_repo.pay_order(db, order_id, user_id)
+
+
+async def recharge_wallet(
+    db: DatabaseAdapter,
+    amount: Decimal,
+    payment_method: str,
+    user_id: UUID
+) -> Optional[WalletTransaction]:
+    """充值钱包"""
+    return await transaction_repo.recharge_wallet(db, amount, payment_method, user_id)
+
+
+async def withdraw_wallet(
+    db: DatabaseAdapter,
+    amount: Decimal,
+    account_info: str,
+    user_id: UUID
+) -> Optional[WalletTransaction]:
+    """提现钱包"""
+    return await transaction_repo.withdraw_wallet(db, amount, account_info, user_id)

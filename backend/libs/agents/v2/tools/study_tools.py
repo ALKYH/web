@@ -53,9 +53,9 @@ async def find_mentors_tool(university: str = None, major: str = None, degree_le
         mentors_data = []
         for mentor_id in mentor_ids:
             mentor_profile = await supabase_client.select(
-                table="mentorship_relationships",
+                table="profiles",
                 columns="*",
-                filters={"mentor_id": mentor_id}
+                filters={"user_id": mentor_id}
             )
             
             if mentor_profile:

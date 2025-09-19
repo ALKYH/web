@@ -5,7 +5,7 @@ from typing import Optional, List, Dict
 from datetime import datetime
 from uuid import UUID
 
-from apps.schemas.mentorship import SessionCreate, SessionUpdate
+from apps.schemas.session import SessionCreate, SessionUpdate
 from libs.database.adapters import DatabaseAdapter
 
 TABLE_NAME = "sessions"
@@ -18,10 +18,9 @@ async def get_by_id(db: DatabaseAdapter, session_id: UUID) -> Optional[Dict]:
 async def get_by_user(db: DatabaseAdapter, user_id: UUID, limit: int = 20, offset: int = 0) -> List[Dict]:
     """获取用户的会话列表"""
     query = f"""
-        SELECT s.* FROM {TABLE_NAME} s
-        JOIN mentorships m ON s.mentorship_id = m.id
-        WHERE m.mentor_id = $1 OR m.mentee_id = $1
-        ORDER BY s.created_at DESC
+        SELECT * FROM {TABLE_NAME}
+        WHERE mentor_id = $1 OR mentee_id = $1
+        ORDER BY created_at DESC
         LIMIT $2 OFFSET $3
     """
     return await db.fetch_many(query, user_id, limit, offset)

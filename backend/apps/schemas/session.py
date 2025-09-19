@@ -2,7 +2,7 @@
 会话中心 - 数据模型
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 from enum import Enum
 
@@ -23,7 +23,8 @@ class SessionStatus(str, Enum):
 class SessionBase(BaseModel):
     """会话基础模型"""
 
-    mentorship_id: UUID = Field(..., description="所属导师关系ID")
+    mentor_id: UUID = Field(..., description="导师用户ID")
+    mentee_id: UUID = Field(..., description="学员用户ID")
     scheduled_at: datetime = Field(..., description="预定时间")
     duration_minutes: int = Field(60, ge=15, description="持续时间（分钟）")
     status: SessionStatus = Field(SessionStatus.SCHEDULED, description="会话状态")
@@ -33,11 +34,6 @@ class SessionBase(BaseModel):
 
 class SessionCreate(SessionBase):
     """会话创建模型"""
-    pass
-
-
-class SessionRead(Session):
-    """会话读取模型"""
     pass
 
 
@@ -56,6 +52,11 @@ class Session(IDModel, TimestampModel, SessionBase):
 
     class Config(IDModel.Config):
         from_attributes = True
+
+
+class SessionRead(Session):
+    """会话读取模型"""
+    pass
 
 
 # ============ 会话统计模型 ============
