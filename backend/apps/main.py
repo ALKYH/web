@@ -218,6 +218,15 @@ async def shutdown_event():
     """应用关闭时的事件处理"""
     logger.info(f"🔄 {settings.APP_NAME} 正在关闭...")
 
+    # 清理AI智能体系统
+    try:
+        from libs.agents.v2.config import llm_manager, embedding_manager, memory_bank, rag_manager
+        await llm_manager.close()
+        await embedding_manager.close()
+        logger.info("✅ AI智能体系统清理完成")
+    except Exception as e:
+        logger.warning(f"⚠️ AI智能体系统清理异常: {e}")
+
 
 # 导入缺失的模块
 import time

@@ -232,20 +232,46 @@ cd tests/database && python test_database_comprehensive.py
 ### 5. 启动服务
 
 ```bash
-# 方式1: 使用 Poetry 启动 (推荐)
+# 方式1: HTTP开发模式 (推荐用于开发)
 poetry run uvicorn apps.main:app --reload
 
-# 方式2: 使用启动脚本
+# 方式2: HTTPS生产模式 (解决混合内容问题)
+./scripts/start_server_https.sh
+
+# 方式3: 使用传统启动脚本
 ./scripts/start_server.sh
 
-# 方式3: 启动AI智能体系统
+# 方式4: 启动AI智能体系统
 ./scripts/start_agents_v2.sh
 
 # 访问服务
-# - API文档: http://localhost:8000/docs
+# - HTTP开发: http://localhost:8000/docs
+# - HTTPS生产: https://your-server-ip:8000/docs
 # - 在线API文档: https://hf1z77hza6.apifox.cn
-# - 健康检查: http://localhost:8000/health
+# - 健康检查: https://your-server-ip:8000/health
 ```
+
+#### 🔒 HTTPS 配置说明
+
+为了解决前端HTTPS页面访问后端HTTP API时的混合内容(Mixed Content)问题，提供了以下解决方案：
+
+**自动SSL证书生成:**
+```bash
+# 脚本会自动检查并生成自签名SSL证书
+# 证书位置: ssl/cert.pem, ssl/key.pem
+# 证书信息: CN=123.57.174.186, 有效期365天
+```
+
+**生产环境建议:**
+- 使用由CA签发的有效SSL证书替换自签名证书
+- 考虑使用Nginx作为反向代理处理HTTPS
+- 或者使用云服务商的SSL证书服务
+
+**前端配置更新:**
+HTTPS启用后，前端需要将API基础URL从 `http://` 更改为 `https://`。
+
+**浏览器安全警告:**
+自签名证书在浏览器中会显示"不安全"警告，这是正常现象。生产环境请使用有效证书。
 
 ### 5. 运行测试
 

@@ -60,7 +60,7 @@ class LLMManager:
             for config in model_configs:
                 self.models[config.name] = config
                 await self._initialize_provider(config)
-            
+
             self.logger.info(f"已初始化 {len(self.models)} 个模型")
             self.is_initialized = True
 
@@ -69,6 +69,17 @@ class LLMManager:
                 error_code=ErrorCode.LLM_PROVIDER_ERROR,
                 message=f"LLM管理器初始化失败: {str(e)}"
             )
+
+    async def close(self):
+        """关闭所有提供商客户端"""
+        for provider in self.providers.values():
+            if hasattr(provider, 'close') and callable(getattr(provider, 'close')):
+                try:
+                    await provider.close()
+                except Exception as e:
+                    self.logger.warning(f"Error closing provider {provider.__class__.__name__}: {e}")
+        self.providers.clear()
+        self.logger.info("LLM manager closed successfully")
     
     async def _initialize_provider(self, config: ModelConfig):
         """初始化具体的提供商"""
