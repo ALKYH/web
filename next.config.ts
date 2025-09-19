@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 import path from 'path';
 
+/** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   images: {
@@ -17,11 +18,7 @@ const nextConfig: NextConfig = {
       }
     ]
   },
-
-  // Ant Design配置
   transpilePackages: ['antd'],
-
-  // CORS头配置
   async headers() {
     return [
       {
@@ -43,7 +40,6 @@ const nextConfig: NextConfig = {
       }
     ];
   },
-
   async rewrites() {
     return [
       {
