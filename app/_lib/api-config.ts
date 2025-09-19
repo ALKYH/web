@@ -106,5 +106,16 @@ export const API_CONFIG = {
  * @returns 完整的请求URL
  */
 export const getFullUrl = (endpoint: string): string => {
-  return `${API_CONFIG.BASE_URL}${endpoint}`;
+  // 如果配置了绝对 BASE_URL，则直接拼接
+  if (API_CONFIG.BASE_URL && /^https?:\/\//.test(API_CONFIG.BASE_URL)) {
+    return `${API_CONFIG.BASE_URL}${endpoint}`;
+  }
+
+  // 浏览器环境下使用当前站点作为基准，返回绝对地址
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return new URL(endpoint, window.location.origin).toString();
+  }
+
+  // 非浏览器环境时返回相对路径，交给上层自行处理（如 Next 服务器代理）
+  return endpoint;
 };

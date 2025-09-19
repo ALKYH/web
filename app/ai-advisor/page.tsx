@@ -3,20 +3,9 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
-import {
-  Send,
-  Bot,
-  User,
-  Loader2,
-  Sparkles,
-  MessageSquare,
-  Brain,
-  Lightbulb
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+// 移除按钮，输入框使用自带前后缀实现样式
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
 import { aiAgentAPI, type AutoChatRequest } from '@/lib/ai-agent-api';
 
 // Client-only component to prevent hydration mismatch
@@ -69,7 +58,7 @@ function AIAdvisorContent() {
       parts: [
         {
           type: 'text',
-          text: '您好！我是启航AI留学规划师 ✨\n\n我可以帮助您：\n• 🎯 推荐适合的学校和专业\n• 📋 查询申请要求和截止日期\n• 👥 匹配合适的学长学姐引路人\n• 🛍️ 推荐相关指导服务\n• 📅 制定申请时间规划\n• 💡 提供文书和面试建议\n\n请告诉我您的留学问题，我会竭诚为您服务！'
+          text: '您好！我是启航AI留学规划师\n\n我可以帮助您：\n• 推荐适合的学校和专业\n• 查询申请要求和截止日期\n• 匹配合适的学长学姐引路人\n• 推荐相关指导服务\n• 制定申请时间规划\n• 提供文书和面试建议\n\n请告诉我您的留学问题，我会竭诚为您服务！'
         }
       ]
     }
@@ -173,36 +162,12 @@ function AIAdvisorContent() {
     }
   }, [searchParams]);
 
-  const quickQuestions = [
-    '我想申请美国的计算机科学硕士，需要什么条件？',
-    '推荐一些英国的商科学校',
-    '帮我制定留学申请时间规划',
-    '找一些经验丰富的引路人',
-    '新加坡国立大学的申请截止日期是什么时候？'
-  ];
-
   const capabilities = [
-    {
-      icon: Sparkles,
-      title: '智能推荐',
-      desc: '基于您的背景推荐最适合的学校和专业'
-    },
-    { icon: Brain, title: '深度分析', desc: '分析申请要求，提供个性化建议' },
-    {
-      icon: MessageSquare,
-      title: '实时对话',
-      desc: '流式对话体验，即时获得专业指导'
-    },
-    {
-      icon: Lightbulb,
-      title: '策略指导',
-      desc: '申请策略、文书写作、面试技巧全方位指导'
-    }
+    { title: '智能推荐', desc: '基于您的背景推荐最适合的学校和专业' },
+    { title: '深度分析', desc: '分析申请要求，提供个性化建议' },
+    { title: '实时对话', desc: '流式对话体验，即时获得专业指导' },
+    { title: '策略指导', desc: '申请策略、文书写作、面试技巧全方位指导' }
   ];
-
-  const handleQuickQuestion = (question: string) => {
-    setInput(question);
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -228,15 +193,9 @@ function AIAdvisorContent() {
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex justify-center items-center gap-3 mb-4">
-            <div className="relative">
-              <Bot className="h-12 w-12 text-primary" />
-              <Sparkles className="h-5 w-5 text-primary absolute -top-1 -right-1 animate-pulse" />
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              学长帮 AI 留学规划师
-            </h1>
-          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-4">
+            学长帮 AI 留学规划师
+          </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             专业的 AI 驱动留学咨询服务，为您提供个性化的申请指导和学长学姐匹配
           </p>
@@ -246,49 +205,14 @@ function AIAdvisorContent() {
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Capabilities */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5" />
-                  AI能力
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {capabilities.map((capability, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <capability.icon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <div>
-                      <h4 className="font-medium text-sm">
-                        {capability.title}
-                      </h4>
-                      <p className="text-xs text-muted-foreground">
-                        {capability.desc}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            <Card className="rounded-3xl border border-zinc-100 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
 
-            {/* Quick Questions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  快速提问
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {quickQuestions.map((question, index) => (
-                  <Button
-                    key={index}
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-left justify-start h-auto p-3 text-wrap text-xs"
-                    onClick={() => handleQuickQuestion(question)}
-                  >
-                    {question}
-                  </Button>
+              <CardContent className="space-y-6 p-6">
+                {capabilities.map((capability, index) => (
+                  <div key={index} className="space-y-1.5">
+                    <h4 className="font-medium text-base text-zinc-900">{capability.title}</h4>
+                    <p className="text-base text-muted-foreground leading-relaxed">{capability.desc}</p>
+                  </div>
                 ))}
               </CardContent>
             </Card>
@@ -296,102 +220,40 @@ function AIAdvisorContent() {
 
           {/* Chat Area */}
           <div className="lg:col-span-3">
-            <Card className="h-[calc(100vh-200px)] flex flex-col">
-              <CardHeader className="border-b">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Bot className="h-8 w-8 text-primary" />
-                    <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-background"></div>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">学长帮 AI 助手</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      在线 · 随时为您服务
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
+            <Card
+              className="h-[calc(100vh-200px)]"
+              styles={{ body: { display: 'flex', flexDirection: 'column', height: '100%', padding: 0 } }}
+            >
+             
 
               {/* Messages */}
-              <div className="flex-1 p-4 overflow-y-auto" ref={scrollAreaRef}>
-                <div className="space-y-4">
+              <div className="flex-1 p-4 overflow-y-auto chat-wallpaper" ref={scrollAreaRef}>
+                <div className="flex flex-col justify-end gap-2 min-h-full">
                   {messages.map(message => (
-                    <div
-                      key={message.id}
-                      className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'
-                        }`}
-                    >
-                      {message.role === 'assistant' && (
-                        <div className="flex-shrink-0">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Bot className="h-4 w-4 text-primary" />
-                          </div>
+                    <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`bubble bubble-in ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-white border'} ${message.role === 'user' ? 'mr-1' : 'ml-1'}`}>
+                        <div className="text-base">
+                          <ReactMarkdown
+                            components={{
+                              p: ({ ...props }) => <p {...props} className="mb-2 last:mb-0" />,
+                              ul: ({ ...props }) => <ul {...props} className="list-disc pl-5" />,
+                              ol: ({ ...props }) => <ol {...props} className="list-decimal pl-5" />
+                            }}
+                          >
+                            {getMessageText(message)}
+                          </ReactMarkdown>
                         </div>
-                      )}
-
-                      <div
-                        className={`max-w-[80%] ${message.role === 'user' ? 'order-first' : ''
-                          }`}
-                      >
-                        <div
-                          className={`rounded-2xl px-4 py-3 ${message.role === 'user'
-                            ? 'bg-primary text-primary-foreground ml-auto'
-                            : 'bg-muted'
-                            }`}
-                        >
-                          <div className={`text-sm`}>
-                            <ReactMarkdown
-                              components={{
-                                p: ({ ...props }) => (
-                                  <p {...props} className="mb-2 last:mb-0" />
-                                ),
-                                ul: ({ ...props }) => (
-                                  <ul {...props} className="list-disc pl-5" />
-                                ),
-                                ol: ({ ...props }) => (
-                                  <ol {...props} className="list-decimal pl-5" />
-                                )
-                              }}
-                            >
-                              {getMessageText(message)}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-                        <div
-                          className={`text-xs text-muted-foreground mt-1 ${message.role === 'user'
-                            ? 'text-right'
-                            : 'text-left'
-                            }`}
-                        >
-                          {/* Show current time for new messages */}
+                        <div className={`text-[10px] opacity-70 mt-1 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
                           <ClientTimestamp date={new Date()} />
                         </div>
                       </div>
-
-                      {message.role === 'user' && (
-                        <div className="flex-shrink-0">
-                          <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                            <User className="h-4 w-4 text-primary-foreground" />
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
 
                   {isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
-                    <div className="flex gap-3 justify-start">
-                      <div className="flex-shrink-0">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Bot className="h-4 w-4 text-primary" />
-                        </div>
-                      </div>
-                      <div className="max-w-[80%]">
-                        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-3">
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-sm">AI 正在思考...</span>
-                          </div>
-                        </div>
+                    <div className="flex justify-start">
+                      <div className="bubble bg-white border">
+                        <span className="text-sm">AI 正在思考...</span>
                       </div>
                     </div>
                   )}
@@ -400,37 +262,34 @@ function AIAdvisorContent() {
                 </div>
               </div>
 
-              <Separator />
+              {/* removed divider */}
 
               {/* Input Area */}
               <form onSubmit={handleSubmit} className="p-4">
                 <div className="flex gap-2">
-                  <div className="flex-1 relative">
+                  <div className="flex-1">
                     <Input
                       value={input}
                       onChange={handleInputChange}
                       onKeyDown={handleKeyDown}
-                      placeholder="输入您的留学问题..."
+                      placeholder="Hello..."
                       disabled={isLoading}
-                      className="pr-12"
+                      className="h-12 rounded-full bg-white border border-zinc-200 shadow-sm px-3"
+                      
+                      suffix={
+                        <button
+                          type="button"
+                          onClick={() => handleSubmit()}
+                          disabled={isLoading || !input || input.trim() === ''}
+                          className="text-primary disabled:text-zinc-300 text-xl leading-none"
+                          aria-label="发送"
+                        >
+                          ➤
+                        </button>
+                      }
                     />
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={isLoading || !input || input.trim() === ''}
-                    size="icon"
-                    className="flex-shrink-0"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                  </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 text-center">
-                  按 Enter 发送消息 · AI可能会出错，请验证重要信息
-                </p>
               </form>
             </Card>
           </div>
@@ -447,7 +306,6 @@ export default function AIAdvisorPage() {
       fallback={
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
           <div className="text-center">
-            <Bot className="h-12 w-12 text-primary mx-auto mb-4" />
             <p className="text-lg text-muted-foreground">正在加载AI助手...</p>
           </div>
         </div>

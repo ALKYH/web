@@ -185,6 +185,12 @@
   }
 }
 
+/* 聊天壁纸与气泡样式 */
+.chat-wallpaper{background-image:url('/chat-bg.webp');background-size:cover;background-repeat:no-repeat;background-position:center center;background-color:#f5f6f8}
+.bubble{border-radius:20px;padding:10px 14px;max-width:80%;box-shadow:var(--shadow-sm)}
+.bubble-in{animation:bubble-in .2s ease-out}
+@keyframes bubble-in{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
+
 /* 滚动条隐藏 */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
