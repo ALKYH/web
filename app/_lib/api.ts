@@ -358,6 +358,7 @@ export const getUserProfile = async (): Promise<UserProfileResponse> => {
 };
 
 // Session and activity functions
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const getUserSessions = async (_params?: {
   limit?: number;
   offset?: number;
