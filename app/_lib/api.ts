@@ -647,18 +647,13 @@ export const deleteMentorProfile = async (): Promise<{ message: string }> => {
 };
 
 // Messages and conversations
-export const getUserMessages = async (params?: {
-  limit?: number;
-  offset?: number;
-}): Promise<unknown[]> => {
+export const getUserMessages = async (): Promise<unknown[]> => {
   // TODO: Implement when MESSAGES endpoint is available
   console.warn('getUserMessages: MESSAGES endpoint not available');
   return [];
 };
 
-export const getUserConversations = async (params?: {
-  limit?: number;
-}): Promise<unknown[]> => {
+export const getUserConversations = async (): Promise<unknown[]> => {
   // TODO: Implement when MESSAGES endpoint is available
   console.warn('getUserConversations: MESSAGES endpoint not available');
   return [];

@@ -8,11 +8,6 @@ import {
   NavigationMenuList
 } from '@/components/ui/navigation-menu';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,

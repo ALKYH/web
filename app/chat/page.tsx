@@ -13,15 +13,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { searchMentors, type MentorPublic } from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
-import { API_CONFIG, getFullUrl } from '@/lib/api-config';
-import { aiAgentAPI, type AutoChatRequest, type ChatRequest, type ChatResponse } from '@/lib/ai-agent-api';
+import { aiAgentAPI, type AutoChatRequest } from '@/lib/ai-agent-api';
 
 interface Message {
   id: string;
@@ -82,7 +81,7 @@ export default function AgentChatPage() {
   const [tutorConversations, setTutorConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MentorPublic[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -172,7 +171,7 @@ export default function AgentChatPage() {
       console.error('Failed to load conversations:', error);
       // Keep default tutors on error
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -180,54 +179,6 @@ export default function AgentChatPage() {
     }
   }, [isAuthenticated, token, loadConversations]);
 
-  const loadMessages = async (tutorId: number) => {
-    try {
-      setIsLoading(true);
-
-      // TODO: Load messages from API when MESSAGES endpoint is available
-      console.warn('loadMessages: MESSAGES endpoint not available, returning empty messages');
-      setMessages([]);
-      setIsLoading(false);
-      return;
-
-      // TODO: Uncomment when MESSAGES endpoint is available
-      // const response = await fetch(
-      //   getFullUrl(API_CONFIG.ENDPOINTS.MESSAGES.CONVERSATION_BY_ID(tutorId)),
-      //   {
-      //     headers: {
-      //       Authorization: `Bearer ${token}`,
-      //       'Content-Type': 'application/json'
-      //     }
-      //   }
-      // );
-
-      // if (response.ok) {
-      //   const data = await response.json();
-      //   const formattedMessages: Message[] = data.map(
-      //     (msg: {
-      //       id?: string | number;
-      //       content?: string;
-      //       message?: string;
-      //       sender_id?: number;
-      //       created_at?: string;
-      //       timestamp?: string;
-      //     }) => ({
-      //       id: String(msg.id || Date.now() + Math.random()),
-      //       content: msg.content || msg.message || '',
-      //       sender: msg.sender_id === tutorId ? 'tutor' : 'user',
-      //       timestamp: new Date(msg.created_at || msg.timestamp || Date.now()),
-      //       tutorId: tutorId,
-      //       tutorName: selectedTutor?.tutorName
-      //     })
-      //   );
-      //   setMessages(formattedMessages);
-      // }
-    } catch (error) {
-      console.error('Failed to load messages:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const searchTutors = async () => {
     if (!searchQuery.trim()) return;
