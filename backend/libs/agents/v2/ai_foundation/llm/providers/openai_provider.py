@@ -14,12 +14,12 @@ logger = logging.getLogger(__name__)
 
 class OpenAIProvider(BaseLLMProvider):
     """OpenAI LLM 提供商"""
-    
+
     def __init__(self, api_key: str, **kwargs):
         super().__init__(api_key, **kwargs)
         self.client = None
         self._setup_client()
-    
+
     def _setup_client(self):
         """设置 OpenAI 客户端"""
         try:
@@ -34,6 +34,17 @@ class OpenAIProvider(BaseLLMProvider):
         except ImportError:
             logger.warning("OpenAI package not installed, using mock responses")
             self.client = None
+
+    async def close(self):
+        """关闭客户端连接"""
+        if self.client:
+            try:
+                await self.client.close()
+                logger.info("OpenAI client closed successfully")
+            except Exception as e:
+                logger.warning(f"Error closing OpenAI client: {e}")
+            finally:
+                self.client = None
     
     async def chat(
         self, 

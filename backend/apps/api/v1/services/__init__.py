@@ -8,7 +8,7 @@ from . import (
     communication,
     forum,
     matching,
-    mentorship,
+    service,
     skill,
     transaction,
     user_credit_logs,
@@ -16,12 +16,12 @@ from . import (
     message
 )
 
-# 显式导出message服务
+# 显式导出服务
 __all__ = [
     'communication',
     'forum',
     'matching',
-    'mentorship',
+    'service',
     'skill',
     'transaction',
     'user_credit_logs',

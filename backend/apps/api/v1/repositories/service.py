@@ -6,7 +6,7 @@
 from typing import Optional, List
 from datetime import datetime
 
-from apps.schemas.mentorship import Service, ServiceCreate, ServiceUpdate
+from apps.schemas.service import Service, ServiceCreate, ServiceUpdate
 from libs.database.adapters import DatabaseAdapter
 
 

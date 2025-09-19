@@ -62,5 +62,6 @@ def create_v1_router() -> APIRouter:
         v1_router.include_router(transactions.router, prefix="/transactions", tags=["交易"])
     except ImportError as e:
         print(f"Warning: Could not import transactions routes: {e}")
-    
+
+
     return v1_router

@@ -3,7 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 from apps.api.v1.deps import get_current_user, require_mentor_role, require_student_role, get_database
 from apps.api.v1.deps import AuthenticatedUser
-from apps.schemas.mentorship import (
+from apps.schemas.session import (
     SessionCreate, SessionUpdate, Session, SessionRead, SessionFeedback, SessionSummary
 )
 from apps.api.v1.repositories import session
@@ -255,7 +255,6 @@ async def start_session(
     """开始会话"""
     try:
         # 简化实现：直接更新会话状态为 'active'
-        from apps.schemas.session import SessionUpdate
         update_data = SessionUpdate(status="active")
         session_result = await session.update(db_conn, session_id, update_data)
         if not session_result:
@@ -287,7 +286,6 @@ async def end_session(
     """结束会话"""
     try:
         # 简化实现：直接更新会话状态为 'completed'
-        from apps.schemas.session import SessionUpdate
         update_data = SessionUpdate(status="completed")
         if actual_duration:
             update_data.actual_duration = actual_duration
@@ -321,7 +319,6 @@ async def cancel_session(
     """取消会话"""
     try:
         # 简化实现：直接更新会话状态为 'cancelled'
-        from apps.schemas.session import SessionUpdate
         update_data = SessionUpdate(status="cancelled")
         if reason:
             update_data.notes = f"取消原因: {reason}"
@@ -355,7 +352,6 @@ async def submit_feedback(
     """提交会话反馈"""
     try:
         # 简化实现：直接更新会话的反馈信息
-        from apps.schemas.session import SessionUpdate
         update_data = SessionUpdate(
             feedback_rating=feedback.rating,
             feedback_comment=feedback.comment
@@ -390,7 +386,6 @@ async def save_summary(
     """保存会话总结"""
     try:
         # 简化实现：直接更新会话的总结信息
-        from apps.schemas.session import SessionUpdate
         update_data = SessionUpdate(
             summary=summary.content,
             key_points=summary.key_points,
