@@ -287,39 +287,46 @@ class MemoryBank:
         self.logger = logging.getLogger(__name__)
     
     async def get_context(
-        self, 
-        session_id: str, 
-        user_id: str, 
-        query: str, 
-        top_k: int = 3
+        self,
+        session_id: str,
+        user_id: str,
+        query: str,
+        top_k: int = 3,
+        use_embedding: bool = True
     ) -> MemoryContext:
         """获取完整的记忆上下文"""
         try:
             # 获取短期记忆 (当前会话)
             session_history = await self.working_memory.get_session_history(session_id)
-            
-            # 获取长期记忆 (相关历史记忆)
-            query_embedding = await self.embedding_manager.embed_texts(
-                tenant_id=user_id,
-                model_name="text-embedding-ada-002",
-                texts=[query]
-            )
-            
-            relevant_memories = await self.long_term_memory.retrieve_memories(
-                user_id=user_id,
-                query_embedding=query_embedding[0],
-                top_k=top_k
-            )
-            
+
+            # 获取长期记忆 (相关历史记忆) - 可选
+            relevant_memories = []
+            if use_embedding and self.embedding_manager:
+                try:
+                    query_embedding = await self.embedding_manager.embed_texts(
+                        tenant_id=user_id,
+                        model_name="text-embedding-ada-002",
+                        texts=[query]
+                    )
+
+                    relevant_memories = await self.long_term_memory.retrieve_memories(
+                        user_id=user_id,
+                        query_embedding=query_embedding[0],
+                        top_k=top_k
+                    )
+                except Exception as e:
+                    self.logger.warning(f"嵌入检索失败，使用无嵌入模式: {e}")
+                    relevant_memories = []
+
             # 生成上下文摘要
             context_summary = await self._generate_context_summary(
-                session_history, 
+                session_history,
                 relevant_memories
             )
-            
+
             # 估算token数量
             total_tokens = self._estimate_tokens(session_history, relevant_memories)
-            
+
             return MemoryContext(
                 session_history=session_history,
                 relevant_memories=[mem.__dict__ for mem in relevant_memories],

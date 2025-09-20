@@ -19,7 +19,8 @@ from libs.agents.v2 import (
 )
 from libs.agents.v2.config import config_manager
 from libs.agents.v2.ai_foundation.llm.manager import llm_manager
-from apps.api.v1.deps import get_current_user, get_database, AuthenticatedUser
+from libs.config.settings import settings
+from apps.api.v1.deps import get_current_user_optional, get_database, AuthenticatedUser
 from apps.api.v1.services import user_credit_logs as credit_service
 from apps.schemas.user_credit_logs import CreditTransaction
 from libs.database.adapters import DatabaseAdapter
@@ -33,6 +34,8 @@ class ChatRequest(BaseModel):
     """智能体对话请求"""
     message: str = Field(..., description="用户消息", min_length=1, max_length=2000)
     session_id: Optional[str] = Field(None, description="会话ID（可选，会自动生成）")
+    enable_rag: bool = Field(False, description="是否启用RAG检索功能（默认为False）")
+    model: Optional[str] = Field(None, description="使用的模型名称（可选，使用默认模型）")
 
 class AutoChatRequest(BaseModel):
     """智能体自动选择对话请求"""
@@ -159,7 +162,7 @@ async def get_system_info():
 @router.post("/planner/chat", response_model=ChatResponse, summary="留学规划师对话")
 async def chat_with_planner(
     request: ChatRequest,
-    current_user: AuthenticatedUser = Depends(get_current_user),
+    current_user: Optional[AuthenticatedUser] = Depends(get_current_user_optional),
     db: DatabaseAdapter = Depends(get_database),
     _: None = Depends(verify_system_ready)
 ):
@@ -173,17 +176,22 @@ async def chat_with_planner(
     - 引路人和服务推荐
     """
     try:
-        user_id = int(current_user.id)
-
-        # 检查用户积分
-        if not await check_user_credits(db, user_id):
-            raise HTTPException(status_code=402, detail="积分不足，请充值后继续使用")
+        # 处理用户身份：支持匿名用户和认证用户
+        if current_user:
+            user_id = int(current_user.id)
+            # 认证用户检查积分
+            if not await check_user_credits(db, user_id):
+                raise HTTPException(status_code=402, detail="积分不足，请充值后继续使用")
+        else:
+            # 匿名用户使用临时UUID
+            user_id = str(uuid.uuid4())  # 匿名用户ID
 
         # 获取或创建会话
         session_id = await get_or_create_session(db, user_id, request.session_id)
 
         # 创建留学规划师智能体
-        planner = create_study_planner(str(user_id))
+        model_name = request.model or settings.DEFAULT_MODEL
+        planner = create_study_planner(str(user_id), model_name=model_name, enable_rag=request.enable_rag)
 
         # 执行对话
         response = await planner.execute(request.message)
@@ -213,7 +221,7 @@ async def chat_with_planner(
 @router.post("/consultant/chat", response_model=ChatResponse, summary="留学咨询师对话")
 async def chat_with_consultant(
     request: ChatRequest,
-    current_user: AuthenticatedUser = Depends(get_current_user),
+    current_user: Optional[AuthenticatedUser] = Depends(get_current_user_optional),
     db: DatabaseAdapter = Depends(get_database),
     _: None = Depends(verify_system_ready)
 ):
@@ -227,17 +235,22 @@ async def chat_with_consultant(
     - 留学经验分享
     """
     try:
-        user_id = int(current_user.id)
-
-        # 检查用户积分
-        if not await check_user_credits(db, user_id):
-            raise HTTPException(status_code=402, detail="积分不足，请充值后继续使用")
+        # 处理用户身份：支持匿名用户和认证用户
+        if current_user:
+            user_id = int(current_user.id)
+            # 认证用户检查积分
+            if not await check_user_credits(db, user_id):
+                raise HTTPException(status_code=402, detail="积分不足，请充值后继续使用")
+        else:
+            # 匿名用户使用临时UUID
+            user_id = str(uuid.uuid4())  # 匿名用户ID
 
         # 获取或创建会话
         session_id = await get_or_create_session(db, user_id, request.session_id)
 
         # 创建留学咨询师智能体
-        consultant = create_study_consultant(str(user_id))
+        model_name = request.model or settings.DEFAULT_MODEL
+        consultant = create_study_consultant(str(user_id), model_name=model_name, enable_rag=request.enable_rag)
 
         # 执行对话
         response = await consultant.execute(request.message)
@@ -278,7 +291,7 @@ async def chat_with_consultant(
 )
 async def chat_with_auto_agent(
     auto_request: AutoChatRequest,
-    current_user: AuthenticatedUser = Depends(get_current_user),
+    current_user: Optional[AuthenticatedUser] = Depends(get_current_user_optional),
     db: DatabaseAdapter = Depends(get_database),
     _: None = Depends(verify_system_ready),
     stream: bool = Query(False, description="是否启用SSE流式响应")
@@ -291,19 +304,26 @@ async def chat_with_auto_agent(
     - study_consultant: 留学咨询师
     """
     try:
-        user_id = int(current_user.id)
-
-        # 检查用户积分
-        if not await check_user_credits(db, user_id):
-            raise HTTPException(status_code=402, detail="积分不足，请充值后继续使用")
+        # 处理用户身份：支持匿名用户和认证用户
+        if current_user:
+            user_id = int(current_user.id)
+            # 认证用户检查积分
+            if not await check_user_credits(db, user_id):
+                raise HTTPException(status_code=402, detail="积分不足，请充值后继续使用")
+        else:
+            # 匿名用户使用临时UUID
+            user_id = str(uuid.uuid4())  # 匿名用户ID
 
         # 获取或创建会话
         session_id = await get_or_create_session(db, user_id, auto_request.request.session_id)
 
+        # 使用用户指定的模型或默认模型
+        model_name = auto_request.request.model or settings.DEFAULT_MODEL
+
         if auto_request.agent_type == "study_planner":
-            agent = create_study_planner(str(user_id))
+            agent = create_study_planner(str(user_id), model_name=model_name, enable_rag=auto_request.request.enable_rag)
         elif auto_request.agent_type == "study_consultant":
-            agent = create_study_consultant(str(user_id))
+            agent = create_study_consultant(str(user_id), model_name=model_name, enable_rag=auto_request.request.enable_rag)
         else:
             raise HTTPException(
                 status_code=400,
@@ -345,11 +365,15 @@ async def chat_with_auto_agent(
                     {"role": "user", "content": auto_request.request.message}
                 ]
 
+                # 使用用户指定的模型或默认模型
+                model_name = auto_request.request.model or settings.DEFAULT_MODEL
+
                 async for chunk in llm_manager.stream_chat(
                     tenant_id=str(user_id),
-                    model_name="gpt-4o-mini",
+                    model_name=model_name,
                     messages=messages,
-                    temperature=0.7
+                    temperature=0.7,
+                    stream=True
                 ):
                     if getattr(chunk, 'delta', None):
                         yield f"data: {chunk.delta}\n\n"
@@ -374,8 +398,6 @@ async def chat_with_auto_agent(
     except Exception as e:
         logger.error(f"智能体对话异常: {e}")
         raise HTTPException(status_code=500, detail="对话服务暂时不可用")
-
-# 兼容与别名接口已移除：/planner/invoke
 
 # 健康检查路由
 @router.get("/health", summary="智能体系统健康检查")

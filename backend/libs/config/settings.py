@@ -62,6 +62,15 @@ class Settings(BaseSettings):
     def OPENAI_API_KEY(self) -> str:
         return self.ai.OPENAI_API_KEY
 
+    @property
+    def DEFAULT_MODEL(self) -> str:
+        """根据配置动态返回默认模型"""
+        # 如果配置了OpenRouter，使用OpenRouter免费模型
+        if self.ai.OPENAI_BASE_URL and 'openrouter.ai' in self.ai.OPENAI_BASE_URL:
+            return "z-ai/glm-4.5-air:free"  # OpenRouter免费模型
+        # 否则使用标准OpenAI模型
+        return "gpt-4o-mini"
+
 
 # 创建全局配置实例
 settings = Settings()

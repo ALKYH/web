@@ -1,7 +1,7 @@
 """
 V1 API依赖注入
 """
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from typing import Optional
@@ -98,3 +98,41 @@ def require_student_role():
             )
         return current_user
     return role_checker
+
+async def get_current_user_optional(
+    request: Request,
+    db: DatabaseAdapter = Depends(get_database_adapter)
+) -> Optional[AuthenticatedUser]:
+    """
+    可选的认证函数，从请求头获取token，如果没有提供token或token无效，返回None而不是抛出异常
+    """
+    from fastapi import Request
+    authorization = request.headers.get("authorization")
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+
+    token = authorization.split(" ")[1] if len(authorization.split(" ")) > 1 else None
+    if not token:
+        return None
+
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+    except JWTError:
+        return None
+
+    user = await db.fetch_one(
+        "SELECT id, username, email, role, is_active FROM users WHERE id = $1",
+        str(user_id)
+    )
+
+    if user is None or not user["is_active"]:
+        return None
+
+    return AuthenticatedUser(
+        id=UUID(str(user['id'])),
+        username=user['username'],
+        role=user.get('role', 'user')
+    )

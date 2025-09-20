@@ -12,7 +12,12 @@ class AIConfig(BaseSettings):
     
     # 基础 AI 配置
     OPENAI_API_KEY: str = Field(..., description="OpenAI API 密钥")
-    DEFAULT_MODEL: str = Field(default="gpt-4o-mini", description="默认 LLM 模型")
+    OPENAI_BASE_URL: Optional[str] = Field(default=None, description="OpenAI API 基础URL")
+
+    # OpenRouter 配置
+    OPENROUTER_HTTP_REFERER: Optional[str] = Field(default=None, description="OpenRouter HTTP-Referer header")
+    OPENROUTER_X_TITLE: Optional[str] = Field(default=None, description="OpenRouter X-Title header")
+
     DEFAULT_EMBEDDING_MODEL: str = Field(default="text-embedding-ada-002", description="默认嵌入模型")
     
     # Agent 性能配置

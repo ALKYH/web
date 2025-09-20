@@ -499,6 +499,16 @@ class RAGManager:
         start_time = time.time()
         
         try:
+            # 检查embedding_manager是否可用
+            if not self.embedding_manager or not hasattr(self.embedding_manager, 'embed_texts'):
+                self.logger.warning("Embedding manager not available, skipping RAG query")
+                return RAGQueryResult(
+                    query=query_text,
+                    relevant_chunks=[],
+                    total_chunks=0,
+                    search_time=time.time() - start_time
+                )
+
             # 1. 生成查询嵌入
             query_embeddings = await self.embedding_manager.embed_texts(
                 tenant_id=tenant_id,
