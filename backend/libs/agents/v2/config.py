@@ -26,22 +26,28 @@ class V2Config:
     """v2.0架构配置"""
     openai_api_key: str
     debug: bool = False
-    
+
+    # OpenAI/OpenRouter配置
+    openai_base_url: Optional[str] = None
+    openrouter_http_referer: Optional[str] = None
+    openrouter_x_title: Optional[str] = None
+
     # 可选的外部服务配置
     redis_url: Optional[str] = None
     milvus_host: Optional[str] = None
     milvus_port: int = 19530
     mongodb_url: Optional[str] = None
     elasticsearch_url: Optional[str] = None
-    
+
     # Agent配置
     default_model: str = "gpt-4o-mini"
     default_embedding_model: str = "text-embedding-ada-002"
-    
+    enable_embeddings: bool = False  # 是否启用嵌入功能
+
     # 记忆系统配置
     memory_session_ttl: int = 24 * 3600  # 24小时
     memory_decay_days: int = 30  # 30天半衰期
-    
+
     # RAG配置
     default_chunk_size: int = 1000
     default_chunk_overlap: int = 200
@@ -58,8 +64,15 @@ class V2ConfigManager:
     
     def load_from_settings(self, settings: Settings) -> V2Config:
         """从应用设置加载v2配置"""
+        # 检查是否启用嵌入（如果有向量数据库配置则启用）
+        enable_embeddings = bool(os.getenv("MILVUS_HOST") or os.getenv("MONGODB_URL"))
+
         config = V2Config(
-            openai_api_key=settings.OPENAI_API_KEY,
+            openai_api_key=settings.ai.OPENAI_API_KEY,
+            openai_base_url=settings.ai.OPENAI_BASE_URL,
+            openrouter_http_referer=settings.ai.OPENROUTER_HTTP_REFERER,
+            openrouter_x_title=settings.ai.OPENROUTER_X_TITLE,
+            enable_embeddings=enable_embeddings,
             debug=settings.DEBUG,
             # 从环境变量中读取可选配置
             redis_url=os.getenv("REDIS_URL"),
@@ -77,11 +90,18 @@ class V2ConfigManager:
         if not openai_api_key:
             raise ValueError("OPENAI_API_KEY environment variable is required")
         
+        # 检查是否启用嵌入（如果有向量数据库配置则启用）
+        enable_embeddings = bool(os.getenv("MILVUS_HOST") or os.getenv("MONGODB_URL"))
+
         config = V2Config(
             openai_api_key=openai_api_key,
+            openai_base_url=os.getenv("OPENAI_BASE_URL"),
+            openrouter_http_referer=os.getenv("OPENROUTER_HTTP_REFERER"),
+            openrouter_x_title=os.getenv("OPENROUTER_X_TITLE"),
+            enable_embeddings=enable_embeddings,
             debug=os.getenv("DEBUG", "false").lower() == "true",
             redis_url=os.getenv("REDIS_URL"),
-            milvus_host=os.getenv("MILVUS_HOST"), 
+            milvus_host=os.getenv("MILVUS_HOST"),
             milvus_port=int(os.getenv("MILVUS_PORT", "19530")),
             mongodb_url=os.getenv("MONGODB_URL"),
             elasticsearch_url=os.getenv("ELASTICSEARCH_URL")
@@ -89,55 +109,133 @@ class V2ConfigManager:
         self.config = config
         return config
     
+    def _build_extra_headers(self) -> Dict[str, str]:
+        """构建OpenRouter额外的headers"""
+        headers = {}
+        if self.config.openrouter_http_referer:
+            headers["HTTP-Referer"] = self.config.openrouter_http_referer
+        if self.config.openrouter_x_title:
+            headers["X-Title"] = self.config.openrouter_x_title
+        return headers if headers else None
+
     def get_llm_configs(self) -> list[ModelConfig]:
         """获取LLM模型配置"""
         if not self.config:
             raise RuntimeError("Configuration not loaded")
-        
-        return [
-            ModelConfig(
-                name="gpt-4o-mini",
-                provider=ModelProvider.OPENAI,
-                api_key=self.config.openai_api_key,
-                max_tokens=4096,
-                temperature=0.7
-            ),
-            ModelConfig(
-                name="gpt-3.5-turbo",
-                provider=ModelProvider.OPENAI,
-                api_key=self.config.openai_api_key,
-                max_tokens=4096,
-                temperature=0.7
-            ),
-            ModelConfig(
-                name="gpt-4",
-                provider=ModelProvider.OPENAI,
-                api_key=self.config.openai_api_key,
-                max_tokens=8192,
-                temperature=0.7
-            )
-        ]
+
+        extra_headers = self._build_extra_headers()
+        configs = []
+
+        # 检查是否使用OpenRouter
+        is_openrouter = self.config.openai_base_url and 'openrouter.ai' in self.config.openai_base_url
+
+        if is_openrouter:
+            # OpenRouter免费模型
+            configs.extend([
+                ModelConfig(
+                    name="deepseek/deepseek-chat-v3.1:free",
+                    provider=ModelProvider.OPENAI,
+                    api_key=self.config.openai_api_key,
+                    base_url=self.config.openai_base_url,
+                    extra_headers=extra_headers,
+                    max_tokens=4096,
+                    temperature=0.7
+                ),
+                ModelConfig(
+                    name="deepseek/deepseek-r1-0528:free",
+                    provider=ModelProvider.OPENAI,
+                    api_key=self.config.openai_api_key,
+                    base_url=self.config.openai_base_url,
+                    extra_headers=extra_headers,
+                    max_tokens=4096,
+                    temperature=0.7
+                ),
+                ModelConfig(
+                    name="x-ai/grok-4-fast:free",
+                    provider=ModelProvider.OPENAI,
+                    api_key=self.config.openai_api_key,
+                    base_url=self.config.openai_base_url,
+                    extra_headers=extra_headers,
+                    max_tokens=4096,
+                    temperature=0.7
+                ),
+                ModelConfig(
+                    name="z-ai/glm-4.5-air:free",
+                    provider=ModelProvider.OPENAI,
+                    api_key=self.config.openai_api_key,
+                    base_url=self.config.openai_base_url,
+                    extra_headers=extra_headers,
+                    max_tokens=4096,
+                    temperature=0.7
+                )
+            ])
+        else:
+            # 标准OpenAI模型
+            configs.extend([
+                ModelConfig(
+                    name="gpt-4o-mini",
+                    provider=ModelProvider.OPENAI,
+                    api_key=self.config.openai_api_key,
+                    base_url=self.config.openai_base_url,
+                    extra_headers=extra_headers,
+                    max_tokens=4096,
+                    temperature=0.7
+                ),
+                ModelConfig(
+                    name="gpt-3.5-turbo",
+                    provider=ModelProvider.OPENAI,
+                    api_key=self.config.openai_api_key,
+                    base_url=self.config.openai_base_url,
+                    extra_headers=extra_headers,
+                    max_tokens=4096,
+                    temperature=0.7
+                ),
+                ModelConfig(
+                    name="gpt-4",
+                    provider=ModelProvider.OPENAI,
+                    api_key=self.config.openai_api_key,
+                    base_url=self.config.openai_base_url,
+                    extra_headers=extra_headers,
+                    max_tokens=8192,
+                    temperature=0.7
+                )
+            ])
+
+        return configs
     
     def get_embedding_configs(self) -> list[ModelConfig]:
         """获取嵌入模型配置"""
         if not self.config:
             raise RuntimeError("Configuration not loaded")
-        
+
+        # 如果未启用嵌入，返回空配置
+        if not self.config.enable_embeddings:
+            self.logger.info(f"Embeddings disabled (enable_embeddings={self.config.enable_embeddings}), returning empty config")
+            return []
+
+        extra_headers = self._build_extra_headers()
+
         return [
             ModelConfig(
                 name="text-embedding-ada-002",
                 provider=ModelProvider.OPENAI,
-                api_key=self.config.openai_api_key
+                api_key=self.config.openai_api_key,
+                base_url=self.config.openai_base_url,
+                extra_headers=extra_headers
             ),
             ModelConfig(
                 name="text-embedding-3-small",
                 provider=ModelProvider.OPENAI,
-                api_key=self.config.openai_api_key
+                api_key=self.config.openai_api_key,
+                base_url=self.config.openai_base_url,
+                extra_headers=extra_headers
             ),
             ModelConfig(
                 name="text-embedding-3-large",
                 provider=ModelProvider.OPENAI,
-                api_key=self.config.openai_api_key
+                api_key=self.config.openai_api_key,
+                base_url=self.config.openai_base_url,
+                extra_headers=extra_headers
             )
         ]
     
@@ -209,9 +307,16 @@ class V2ConfigManager:
             # 初始化LLM管理器
             llm_configs = self.get_llm_configs()
             embedding_configs = self.get_embedding_configs()
-            
+
             await llm_manager.initialize(llm_configs)
-            await embedding_manager.initialize(embedding_configs)
+
+            # 只有在启用嵌入且有嵌入配置时才初始化嵌入管理器
+            self.logger.info(f"enable_embeddings: {self.config.enable_embeddings}, embedding_configs count: {len(embedding_configs)}")
+            if self.config.enable_embeddings and embedding_configs:
+                await embedding_manager.initialize(embedding_configs)
+                self.logger.info("Embedding manager initialized")
+            else:
+                self.logger.info("Embeddings disabled or no embedding configurations found, skipping embedding manager initialization")
             
             # 初始化记忆系统
             memory_bank.__init__(

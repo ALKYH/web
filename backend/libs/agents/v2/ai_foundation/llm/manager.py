@@ -37,6 +37,7 @@ class ModelConfig:
     provider: ModelProvider
     api_key: str
     base_url: Optional[str] = None
+    extra_headers: Optional[Dict[str, str]] = None
     max_tokens: int = 4096
     temperature: float = 0.7
     timeout: int = 30
@@ -85,7 +86,7 @@ class LLMManager:
         """初始化具体的提供商"""
         if config.provider == ModelProvider.OPENAI:
             from .providers.openai_provider import OpenAIProvider
-            self.providers[config.name] = OpenAIProvider(config.api_key)
+            self.providers[config.name] = OpenAIProvider(config.api_key, base_url=config.base_url, extra_headers=config.extra_headers)
         elif config.provider == ModelProvider.OLLAMA:
             # TODO: 实现Ollama提供商
             self.logger.warning(f"Ollama provider not implemented yet for model: {config.name}")
@@ -159,7 +160,7 @@ class LLMManager:
             await self._check_rate_limit(tenant_id, model_name)
             
             provider = self.providers[model_name]
-            async for chunk in provider.stream_chat(messages, model=model_name, **kwargs):
+            async for chunk in provider.stream_chat(messages, model_name, **kwargs):
                 # 兼容不同Provider的增量字段命名
                 content = getattr(chunk, "content", "")
                 delta = getattr(chunk, "delta", content)
@@ -247,7 +248,7 @@ class EmbeddingManager:
         """初始化嵌入模型提供商"""
         if config.provider == ModelProvider.OPENAI:
             from .providers.openai_provider import OpenAIEmbeddingProvider
-            self.providers[config.name] = OpenAIEmbeddingProvider(config.api_key)
+            self.providers[config.name] = OpenAIEmbeddingProvider(config.api_key, base_url=config.base_url, extra_headers=config.extra_headers)
     
     async def embed_texts(
         self, 

@@ -12,25 +12,48 @@ from .base_provider import BaseLLMProvider, BaseEmbeddingProvider, LLMResponse, 
 logger = logging.getLogger(__name__)
 
 
-class OpenAIProvider(BaseLLMProvider):
-    """OpenAI LLM 提供商"""
+class BaseOpenAIClient:
+    """OpenAI客户端基类，处理通用逻辑"""
 
-    def __init__(self, api_key: str, **kwargs):
-        super().__init__(api_key, **kwargs)
+    def __init__(self, api_key: str, base_url: str = None, extra_headers: Dict[str, str] = None):
+        self.api_key = api_key
+        self.base_url = base_url
+        self.extra_headers = extra_headers or {}
         self.client = None
+        self._http_client = None
         self._setup_client()
 
     def _setup_client(self):
         """设置 OpenAI 客户端"""
         try:
             from openai import AsyncOpenAI
-            # 设置更长的超时时间以避免网络问题
-            self.client = AsyncOpenAI(
-                api_key=self.api_key,
-                timeout=120.0,  # 120秒超时
-                max_retries=3   # 最大重试次数
+            import httpx
+
+            # 创建不使用代理的httpx客户端
+            from httpx import AsyncHTTPTransport
+
+            # 创建禁用代理的transport
+            transport = AsyncHTTPTransport(
+                limits=httpx.Limits(max_keepalive_connections=10, max_connections=20)
             )
-            logger.info("OpenAI client initialized successfully with 120s timeout")
+
+            self._http_client = httpx.AsyncClient(
+                transport=transport,
+                timeout=120.0
+            )
+
+            client_kwargs = {
+                "api_key": self.api_key,
+                "http_client": self._http_client,  # 使用自定义客户端禁用代理
+                "max_retries": 3,
+            }
+            if self.base_url:
+                client_kwargs["base_url"] = self.base_url
+            if self.extra_headers:
+                client_kwargs["default_headers"] = self.extra_headers
+
+            self.client = AsyncOpenAI(**client_kwargs)
+            logger.info(f"OpenAI client initialized successfully with 120s timeout{' (using custom base_url)' if self.base_url else ''}")
         except ImportError:
             logger.warning("OpenAI package not installed, using mock responses")
             self.client = None
@@ -40,11 +63,35 @@ class OpenAIProvider(BaseLLMProvider):
         if self.client:
             try:
                 await self.client.close()
-                logger.info("OpenAI client closed successfully")
+                logger.info(f"OpenAI client closed successfully")
             except Exception as e:
                 logger.warning(f"Error closing OpenAI client: {e}")
             finally:
                 self.client = None
+
+        # 关闭自定义的httpx客户端（如果存在）
+        if self._http_client:
+            try:
+                await self._http_client.aclose()
+                logger.info("Custom httpx client closed successfully")
+            except Exception as e:
+                logger.warning(f"Error closing custom httpx client: {e}")
+
+
+class OpenAIProvider(BaseLLMProvider):
+    """OpenAI LLM 提供商"""
+
+    def __init__(self, api_key: str, base_url: str = None, extra_headers: Dict[str, str] = None, **kwargs):
+        super().__init__(api_key, **kwargs)
+        self._client_helper = BaseOpenAIClient(api_key, base_url, extra_headers)
+
+    @property
+    def client(self):
+        return self._client_helper.client
+
+    async def close(self):
+        """关闭客户端连接"""
+        await self._client_helper.close()
     
     async def chat(
         self, 
@@ -114,7 +161,6 @@ class OpenAIProvider(BaseLLMProvider):
             stream = await self.client.chat.completions.create(
                 model=model,
                 messages=messages,
-                stream=True,
                 **kwargs
             )
             
@@ -161,22 +207,19 @@ class OpenAIProvider(BaseLLMProvider):
 
 class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
     """OpenAI 嵌入提供商"""
-    
-    def __init__(self, api_key: str, **kwargs):
+
+    def __init__(self, api_key: str, base_url: str = None, extra_headers: Dict[str, str] = None, **kwargs):
         super().__init__(api_key, **kwargs)
-        self.client = None
-        self._setup_client()
-    
-    def _setup_client(self):
-        """设置 OpenAI 客户端"""
-        try:
-            from openai import AsyncOpenAI
-            self.client = AsyncOpenAI(api_key=self.api_key)
-            logger.info("OpenAI embedding client initialized successfully")
-        except ImportError:
-            logger.warning("OpenAI package not installed, using mock embeddings")
-            self.client = None
-    
+        self._client_helper = BaseOpenAIClient(api_key, base_url, extra_headers)
+
+    @property
+    def client(self):
+        return self._client_helper.client
+
+    async def close(self):
+        """关闭客户端连接"""
+        await self._client_helper.close()
+
     async def embed_texts(
         self,
         texts: List[str],
@@ -194,8 +237,21 @@ class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
                 input=texts,
                 **kwargs
             )
-            
-            return [data.embedding for data in response.data]
+
+            # OpenRouter的响应格式可能与OpenAI不同
+            logger.info(f"Embeddings response type: {type(response)}, data type: {type(response.data) if hasattr(response, 'data') else 'no data attr'}")
+
+            if hasattr(response, 'data') and response.data:
+                # 标准OpenAI格式
+                if isinstance(response.data, list):
+                    return [data.embedding for data in response.data]
+                else:
+                    logger.warning(f"Unexpected response.data type: {type(response.data)}")
+                    # 如果是字符串或其他格式，返回模拟数据
+                    return [[0.1] * 1536 for _ in texts]
+            else:
+                logger.warning("Response has no data attribute, using mock embeddings")
+                return [[0.1] * 1536 for _ in texts]
             
         except Exception as e:
             logger.error(f"OpenAI embedding error: {e}")

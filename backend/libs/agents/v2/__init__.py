@@ -70,12 +70,13 @@ class AgentConfig:
 class StudyPlannerAgent:
     """留学规划师 - 制定个性化留学申请策略"""
     
-    def __init__(self, tenant_id: str, config: Optional[AgentConfig] = None):
+    def __init__(self, tenant_id: str, config: Optional[AgentConfig] = None, rag_enabled: bool = False):
         self.tenant_id = tenant_id
         self.config = config or AgentConfig(
             agent_type=AgentType.STUDY_PLANNER,
             tenant_id=tenant_id,
-            tools=["find_mentors_tool", "find_services_tool", "web_search_tool", "get_platform_stats_tool"]
+            tools=["find_mentors_tool", "find_services_tool", "web_search_tool", "get_platform_stats_tool"],
+            rag_enabled=rag_enabled
         )
         self.agent_executor = None
         self._initialize()
@@ -93,32 +94,35 @@ class StudyPlannerAgent:
             if not self.agent_executor:
                 raise AgentException("智能体未正确初始化", tenant_id=self.tenant_id)
             
-            # 添加记忆上下文
-            context = await memory_bank.get_context(
-                session_id=f"planner_{self.tenant_id}",
-                user_id=self.tenant_id,
-                query=query
-            )
-            
-            # 构建增强的查询
-            # 格式化历史对话
-            conversation_text = ""
-            if context and context.session_history:
-                for item in context.session_history:
-                    conversation_text += f"用户: {item.get('human', '')}\n"
-                    conversation_text += f"助手: {item.get('assistant', '')}\n---\n"
-            else:
-                conversation_text = "无历史记录"
-            
-            # 格式化相关记忆
-            relevant_text = ""
-            if context and context.relevant_memories:
-                for memory in context.relevant_memories:
-                    relevant_text += f"- {memory.get('summary', '')}\n"
-            else:
-                relevant_text = "无相关知识"
-            
-            enhanced_query = f"""用户问题: {query}
+            # 根据RAG设置决定是否使用记忆上下文
+            if self.config.rag_enabled:
+                # 添加记忆上下文
+                context = await memory_bank.get_context(
+                    session_id=f"planner_{self.tenant_id}",
+                    user_id=self.tenant_id,
+                    query=query,
+                    use_embedding=True
+                )
+
+                # 构建增强的查询
+                # 格式化历史对话
+                conversation_text = ""
+                if context and context.session_history:
+                    for item in context.session_history:
+                        conversation_text += f"用户: {item.get('human', '')}\n"
+                        conversation_text += f"助手: {item.get('assistant', '')}\n---\n"
+                else:
+                    conversation_text = "无历史记录"
+
+                # 格式化相关记忆
+                relevant_text = ""
+                if context and context.relevant_memories:
+                    for memory in context.relevant_memories:
+                        relevant_text += f"- {memory.get('summary', '')}\n"
+                else:
+                    relevant_text = "无相关知识"
+
+                enhanced_query = f"""用户问题: {query}
 
 历史对话上下文:
 {conversation_text}
@@ -127,6 +131,11 @@ class StudyPlannerAgent:
 {relevant_text}
 
 请作为专业的留学规划师，基于上述信息为用户提供个性化的留学申请策略建议。"""
+            else:
+                # 不使用RAG，直接使用原始查询
+                enhanced_query = f"""用户问题: {query}
+
+请作为专业的留学规划师，为用户提供个性化的留学申请策略建议。"""
 
             # 执行智能体
             response = await self.agent_executor.execute(enhanced_query)
@@ -150,13 +159,14 @@ class StudyPlannerAgent:
 class StudyConsultantAgent:
     """留学咨询师 - 提供专业咨询和问答服务"""
     
-    def __init__(self, tenant_id: str, config: Optional[AgentConfig] = None):
+    def __init__(self, tenant_id: str, config: Optional[AgentConfig] = None, rag_enabled: bool = False):
         self.tenant_id = tenant_id
         self.config = config or AgentConfig(
             agent_type=AgentType.STUDY_CONSULTANT,
             tenant_id=tenant_id,
             tools=["web_search_tool", "get_platform_stats_tool"],
-            system_prompt=self._get_consultant_prompt()
+            system_prompt=self._get_consultant_prompt(),
+            rag_enabled=rag_enabled
         )
         self.agent_executor = None
         self._initialize()
@@ -204,21 +214,35 @@ class StudyConsultantAgent:
 
 
 # 便捷创建函数
-def create_study_planner(tenant_id: str, model_name: str = "gpt-4o-mini") -> StudyPlannerAgent:
+def create_study_planner(tenant_id: str, model_name: Optional[str] = None, enable_rag: bool = False) -> StudyPlannerAgent:
     """创建留学规划师智能体"""
-    return StudyPlannerAgent(tenant_id, AgentConfig(
+    # 如果没有指定模型，使用默认模型
+    if model_name is None:
+        from libs.config.settings import settings
+        model_name = settings.ai.DEFAULT_MODEL
+
+    return StudyPlannerAgent(tenant_id, rag_enabled=enable_rag, config=AgentConfig(
         agent_type=AgentType.STUDY_PLANNER,
         tenant_id=tenant_id,
-        model_name=model_name
+        model_name=model_name,
+        tools=["find_mentors_tool", "find_services_tool", "web_search_tool", "get_platform_stats_tool"],
+        rag_enabled=enable_rag
     ))
 
 
-def create_study_consultant(tenant_id: str, model_name: str = "gpt-4o-mini") -> StudyConsultantAgent:
+def create_study_consultant(tenant_id: str, model_name: Optional[str] = None, enable_rag: bool = False) -> StudyConsultantAgent:
     """创建留学咨询师智能体"""
-    return StudyConsultantAgent(tenant_id, AgentConfig(
+    # 如果没有指定模型，使用默认模型
+    if model_name is None:
+        from libs.config.settings import settings
+        model_name = settings.ai.DEFAULT_MODEL
+
+    return StudyConsultantAgent(tenant_id, rag_enabled=enable_rag, config=AgentConfig(
         agent_type=AgentType.STUDY_CONSULTANT,
         tenant_id=tenant_id,
-        model_name=model_name
+        model_name=model_name,
+        tools=["web_search_tool", "get_platform_stats_tool"],
+        rag_enabled=enable_rag
     ))
 
 

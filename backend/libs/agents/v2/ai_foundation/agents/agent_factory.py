@@ -114,7 +114,8 @@ class AgentExecutor:
         # 添加节点
         workflow.add_node("think", self._think_node)
         workflow.add_node("retrieve_memory", self._retrieve_memory_node)
-        workflow.add_node("retrieve_knowledge", self._retrieve_knowledge_node)
+        if self.config.rag_enabled:
+            workflow.add_node("retrieve_knowledge", self._retrieve_knowledge_node)
         workflow.add_node("use_tool", self._use_tool_node)
         workflow.add_node("generate_response", self._generate_response_node)
         
@@ -122,20 +123,26 @@ class AgentExecutor:
         workflow.set_entry_point("think")
         
         # 添加条件边
+        conditional_edges = {
+            "memory": "retrieve_memory",
+            "tool": "use_tool",
+            "respond": "generate_response"
+        }
+
+        # 只有启用RAG时才添加knowledge路由
+        if self.config.rag_enabled:
+            conditional_edges["knowledge"] = "retrieve_knowledge"
+
         workflow.add_conditional_edges(
             "think",
             self._route_decision,
-            {
-                "memory": "retrieve_memory",
-                "knowledge": "retrieve_knowledge", 
-                "tool": "use_tool",
-                "respond": "generate_response"
-            }
+            conditional_edges
         )
-        
+
         # 添加边
         workflow.add_edge("retrieve_memory", "think")
-        workflow.add_edge("retrieve_knowledge", "think")
+        if self.config.rag_enabled:
+            workflow.add_edge("retrieve_knowledge", "think")
         workflow.add_edge("use_tool", "think")
         workflow.add_edge("generate_response", "__end__")
         
@@ -180,12 +187,14 @@ class AgentExecutor:
             return state
         
         try:
-            # 检索记忆上下文
+            # 检索记忆上下文 - 根据RAG设置决定是否使用嵌入
+            use_embedding = self.config.rag_enabled
             memory_context = await self.memory_bank.get_context(
                 session_id=f"{self.config.tenant_id}_session",
                 user_id=self.config.tenant_id,
                 query=state.input,
-                top_k=3
+                top_k=3,
+                use_embedding=use_embedding
             )
             
             state.memory_context = memory_context.__dict__
@@ -288,15 +297,16 @@ class AgentExecutor:
     def _route_decision(self, state: AgentState) -> str:
         """路由决策 - 决定下一个节点"""
         # 简化的路由逻辑
-        if state.memory_context is None and self.config.memory_enabled:
+        # 注意：当rag_enabled=False时，不使用嵌入相关的记忆检索
+        if state.memory_context is None and self.config.memory_enabled and self.config.rag_enabled:
             return "memory"
-        
+
         if state.rag_results is None and self.config.rag_enabled:
             return "knowledge"
-        
+
         if state.tool_calls:
             return "tool"
-        
+
         return "respond"
     
     def _build_think_prompt(self, state: AgentState) -> List[Dict[str, str]]:
