@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import {
   Send,
   Search,
@@ -87,6 +88,7 @@ export default function AgentChatPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [renderKey, setRenderKey] = useState(0); // 用于强制重新渲染
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -243,29 +245,36 @@ export default function AgentChatPage() {
         agent_type: selectedAgent.agentType
       };
 
-      const response = await aiAgentAPI.chatWithAutoAgent(chatRequest);
+      // 使用流式响应
+      const response = await aiAgentAPI.chatWithAutoAgent(chatRequest, true);
 
-      const agentMessage: Message = {
-        id: String(Date.now() + 1),
-        content: response.response,
-        sender: 'agent',
-        timestamp: new Date(),
-        agentType: response.agent_type as 'study_planner' | 'study_consultant',
-        agentName: selectedAgent.agentName,
-        sessionId: response.session_id || undefined
-      };
+      // 如果返回的是Response对象，说明是流式响应
+      if (response instanceof Response) {
+        await handleStreamingResponse(response, selectedAgent, currentInput);
+      } else {
+        // 处理普通响应（兼容旧代码）
+        const agentMessage: Message = {
+          id: String(Date.now() + 1),
+          content: response.response,
+          sender: 'agent',
+          timestamp: new Date(),
+          agentType: response.agent_type as 'study_planner' | 'study_consultant',
+          agentName: selectedAgent.agentName,
+          sessionId: response.session_id || undefined
+        };
 
-      setMessages(prev => [...prev, agentMessage]);
-      setCurrentSessionId(response.session_id);
+        setMessages(prev => [...prev, agentMessage]);
+        setCurrentSessionId(response.session_id);
 
-      // 更新对话列表中的最后消息
-      setAgentConversations(prev =>
-        prev.map(conv =>
-          conv.id === selectedAgent.id
-            ? { ...conv, lastMessage: response.response, lastMessageTime: new Date() }
-            : conv
-        )
-      );
+        // 更新对话列表中的最后消息
+        setAgentConversations(prev =>
+          prev.map(conv =>
+            conv.id === selectedAgent.id
+              ? { ...conv, lastMessage: response.response, lastMessageTime: new Date() }
+              : conv
+          )
+        );
+      }
 
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -281,6 +290,134 @@ export default function AgentChatPage() {
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
+    }
+  };
+
+  const handleStreamingResponse = async (response: Response, selectedAgent: AgentConversation, currentInput: string) => {
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('无法获取响应流');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullResponse = '';
+    let sessionId: string | null = null;
+
+    // 创建临时的agent消息，用于实时更新
+    const tempMessageId = String(Date.now() + 1);
+    const tempMessage: Message = {
+      id: tempMessageId,
+      content: '',
+      sender: 'agent',
+      timestamp: new Date(),
+      agentType: selectedAgent.agentType,
+      agentName: selectedAgent.agentName,
+      sessionId: currentSessionId || undefined
+    };
+
+    setMessages(prev => [...prev, tempMessage]);
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+
+        for (let i = 0; i < lines.length - 1; i++) {
+          const line = lines[i].trim();
+
+          if (line.startsWith('event: meta')) {
+            // 解析元数据 - 需要向后查找data行
+            for (let j = i + 1; j < lines.length; j++) {
+              const dataLine = lines[j].trim();
+              if (dataLine.startsWith('data: ')) {
+                const metaDataStr = dataLine.substring(6);
+                if (metaDataStr.trim()) {
+                  try {
+                    const metaData = JSON.parse(metaDataStr);
+                    sessionId = metaData.session_id || sessionId;
+                    console.log('解析到元数据:', metaData);
+                  } catch (e) {
+                    console.warn('解析元数据失败:', e, '数据:', metaDataStr);
+                  }
+                }
+                break;
+              }
+            }
+          } else if (line.startsWith('event: done')) {
+            // 流结束
+            console.log('流式响应结束');
+            break;
+          } else if (line.startsWith('data: ')) {
+            const data = line.substring(6).trim();
+
+            if (data === '[DONE]') {
+              console.log('收到[DONE]标记，流式响应结束');
+              break;
+            }
+
+            // 跳过空数据
+            if (!data) {
+              continue;
+            }
+
+            try {
+              // 尝试解析为JSON格式的增量内容
+              const chunk = JSON.parse(data);
+              if (chunk.response) {
+                fullResponse += chunk.response;
+              } else if (chunk.delta) {
+                fullResponse += chunk.delta;
+              } else if (chunk.content) {
+                fullResponse += chunk.content;
+              } else if (typeof chunk === 'string') {
+                fullResponse += chunk;
+              }
+            } catch (e) {
+              // 如果不是JSON，可能是纯文本，直接累积
+              fullResponse += data;
+            }
+
+            // 实时更新消息内容 - 使用 flushSync 强制同步更新确保流式渲染
+            flushSync(() => {
+              setMessages(prev => {
+                const newMessages = prev.map(msg =>
+                  msg.id === tempMessageId
+                    ? { ...msg, content: fullResponse, timestamp: new Date() } // 更新时间戳强制重新渲染
+                    : msg
+                );
+                console.log('Chat 流式更新:', fullResponse.length, '字符');
+                return newMessages;
+              });
+              // 强制重新渲染
+              setRenderKey(prev => prev + 1);
+            });
+          }
+        }
+
+        buffer = lines[lines.length - 1];
+      }
+
+      // 更新最终的session ID
+      if (sessionId) {
+        setCurrentSessionId(sessionId);
+      }
+
+      // 更新对话列表中的最后消息
+      setAgentConversations(prev =>
+        prev.map(conv =>
+          conv.id === selectedAgent.id
+            ? { ...conv, lastMessage: fullResponse, lastMessageTime: new Date() }
+            : conv
+        )
+      );
+
+    } catch (error) {
+      console.error('处理流式响应失败:', error);
+      throw error;
     }
   };
 
@@ -487,7 +624,7 @@ export default function AgentChatPage() {
                       <div className="space-y-4">
                         {messages.map(message => (
                           <div
-                            key={message.id}
+                            key={`${message.id}-${renderKey}-${message.timestamp.getTime()}`}
                             className={`flex ${message.sender === 'user'
                               ? 'justify-end'
                               : 'justify-start'
