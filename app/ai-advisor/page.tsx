@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, Suspense } from 'react';
+import { flushSync } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 // 移除按钮，输入框使用自带前后缀实现样式
@@ -67,6 +68,7 @@ function AIAdvisorContent() {
   // 使用useState管理消息状态，直接调用API
   const [messages, setMessages] = useState(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
+  const [renderKey, setRenderKey] = useState(0); // 用于强制重新渲染
 
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
@@ -93,28 +95,33 @@ function AIAdvisorContent() {
       await aiAgentAPI.chatWithAutoAgentStream(
         chatRequest,
         (chunk: string) => {
-          // 实时更新助手消息内容
-          setMessages(prev => {
-            const newMessages = [...prev];
-            const lastMessage = newMessages[newMessages.length - 1];
+          // 实时更新助手消息内容 - 使用 flushSync 强制同步更新确保流式渲染
+          flushSync(() => {
+            setMessages(prev => {
+              const newMessages = [...prev];
+              const lastMessage = newMessages[newMessages.length - 1];
 
-            if (lastMessage?.role === 'assistant') {
-              // 更新现有助手消息
-              newMessages[newMessages.length - 1] = {
-                ...lastMessage,
-                parts: [{ type: 'text' as const, text: lastMessage.parts[0].text + chunk }]
-              };
-            } else {
-              // 添加新的助手消息
-              const assistantMessage = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant' as const,
-                parts: [{ type: 'text' as const, text: chunk }]
-              };
-              newMessages.push(assistantMessage);
-            }
+              if (lastMessage?.role === 'assistant') {
+                // 更新现有助手消息
+                newMessages[newMessages.length - 1] = {
+                  ...lastMessage,
+                  parts: [{ type: 'text' as const, text: lastMessage.parts[0].text + chunk }]
+                };
+              } else {
+                // 添加新的助手消息
+                const assistantMessage = {
+                  id: (Date.now() + 1).toString(),
+                  role: 'assistant' as const,
+                  parts: [{ type: 'text' as const, text: chunk }]
+                };
+                newMessages.push(assistantMessage);
+              }
 
-            return newMessages;
+              console.log('AI Advisor 流式更新:', chunk.length, '字符');
+              return newMessages;
+            });
+            // 强制重新渲染
+            setRenderKey(prev => prev + 1);
           });
         },
         (response) => {
@@ -124,10 +131,21 @@ function AIAdvisorContent() {
         (error) => {
           // 处理错误
           console.error('Chat error:', error);
+
+          // 根据错误类型显示不同的错误信息
+          let errorText = '抱歉，我现在无法回复，请稍后再试。';
+          if (error.message) {
+            if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+              errorText = 'AI服务暂时不可用，请检查后端配置或稍后再试。';
+            } else if (error.message.includes('API')) {
+              errorText = 'AI API配置问题，请联系管理员。';
+            }
+          }
+
           const errorMessage = {
             id: (Date.now() + 2).toString(),
             role: 'assistant' as const,
-            parts: [{ type: 'text' as const, text: '抱歉，我现在无法回复，请稍后再试。' }]
+            parts: [{ type: 'text' as const, text: errorText }]
           };
           setMessages(prev => [...prev, errorMessage]);
         }
@@ -230,7 +248,7 @@ function AIAdvisorContent() {
               <div className="flex-1 p-4 overflow-y-auto chat-wallpaper" ref={scrollAreaRef}>
                 <div className="flex flex-col justify-end gap-2 min-h-full">
                   {messages.map(message => (
-                    <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div key={`${message.id}-${renderKey}`} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`bubble bubble-in ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-white border'} ${message.role === 'user' ? 'mr-1' : 'ml-1'}`}>
                         <div className="text-base">
                           <ReactMarkdown

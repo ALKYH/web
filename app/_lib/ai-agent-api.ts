@@ -146,9 +146,9 @@ class AIAgentAPI {
    * 智能选择合适的智能体进行对话（推荐使用）
    * @param request 自动对话请求参数
    * @param stream 是否启用流式响应，默认false
-   * @returns 对话响应
+   * @returns 对话响应或原始响应（流式模式）
    */
-  async chatWithAutoAgent(request: AutoChatRequest, stream: boolean = false): Promise<ChatResponse> {
+  async chatWithAutoAgent(request: AutoChatRequest, stream: boolean = false): Promise<ChatResponse | Response> {
     const url = new URL(getFullUrl(API_CONFIG.ENDPOINTS.AGENTS.AUTO_CHAT));
     if (stream) {
       url.searchParams.set('stream', 'true');
@@ -162,6 +162,11 @@ class AIAgentAPI {
     if (!response.ok) {
       const error: ApiError = await response.json();
       throw new Error(error.detail || 'AI智能体对话失败');
+    }
+
+    // 流式响应返回原始Response，普通响应返回解析后的JSON
+    if (stream) {
+      return response;
     }
 
     return response.json();
@@ -193,8 +198,11 @@ class AIAgentAPI {
       });
 
       if (!response.ok) {
-        const error: ApiError = await response.json();
-        throw new Error(error.detail || 'AI智能体对话失败');
+        let errorMessage = 'AI智能体对话失败';
+        // 注意：不要在这里读取 Response body，因为后面需要用 getReader()
+        // 直接使用状态码和通用错误信息
+        errorMessage = `AI智能体对话失败 (HTTP ${response.status})`;
+        throw new Error(errorMessage);
       }
 
       const reader = response.body?.getReader();
@@ -215,19 +223,54 @@ class AIAgentAPI {
         // 处理完整的行
         for (let i = 0; i < lines.length - 1; i++) {
           const line = lines[i].trim();
-          if (line.startsWith('data: ')) {
-            const data = line.substring(6);
+
+          if (line.startsWith('event: meta')) {
+            // 解析元数据 - 需要向后查找data行
+            for (let j = i + 1; j < lines.length; j++) {
+              const dataLine = lines[j].trim();
+              if (dataLine.startsWith('data: ')) {
+                const metaDataStr = dataLine.substring(6);
+                if (metaDataStr.trim()) {
+                  try {
+                    const metaData = JSON.parse(metaDataStr);
+                    console.log('解析到元数据:', metaData);
+                  } catch (e) {
+                    console.warn('解析元数据失败:', e, '数据:', metaDataStr);
+                  }
+                }
+                break;
+              }
+            }
+          } else if (line.startsWith('event: done')) {
+            // 流结束
+            console.log('流式响应结束');
+            break;
+          } else if (line.startsWith('data: ')) {
+            const data = line.substring(6).trim();
+
             if (data === '[DONE]') {
-              // 流结束
+              console.log('收到[DONE]标记，流式响应结束');
               break;
             }
+
+            // 跳过空数据
+            if (!data) {
+              continue;
+            }
+
             try {
+              // 尝试解析为JSON格式的增量内容
               const chunk = JSON.parse(data);
               if (chunk.response) {
                 onChunk(chunk.response);
+              } else if (chunk.delta) {
+                onChunk(chunk.delta);
+              } else if (chunk.content) {
+                onChunk(chunk.content);
               }
             } catch (e) {
-              console.warn('解析流数据失败:', e);
+              // 如果不是JSON，可能是纯文本，直接发送
+              onChunk(data);
             }
           }
         }
