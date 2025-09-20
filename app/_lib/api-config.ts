@@ -38,13 +38,38 @@ export const API_CONFIG = {
       SEARCH_MENTORS: '/api/v1/matching/search' // GET, 搜索导师
     },
 
-    // 导师与学徒 (Mentorship)
+    // 服务管理 (Services)
+    SERVICES: {
+      // 服务管理
+      LIST_SERVICES: '/api/v1/services', // GET, 浏览指导服务
+      CREATE_SERVICE: '/api/v1/services', // POST, 发布指导服务
+      GET_SERVICE: (id: string) => `/api/v1/services/${id}`, // GET, 获取服务详情
+      UPDATE_SERVICE: (id: string) => `/api/v1/services/${id}`, // PUT, 更新服务信息
+      DELETE_SERVICE: (id: string) => `/api/v1/services/${id}`, // DELETE, 删除服务
+      GET_MY_SERVICES: '/api/v1/services/my', // GET, 获取我的服务
+
+      // 导师关系管理
+      CREATE_MENTORSHIP: '/api/v1/services/mentorships', // POST, 申请导师关系
+      GET_MENTORSHIP: (id: string) => `/api/v1/services/mentorships/${id}`, // GET, 获取导师关系详情
+      UPDATE_MENTORSHIP: (id: string) => `/api/v1/services/mentorships/${id}`, // PUT, 更新导师关系状态
+
+      // 会话管理
+      CREATE_SESSION: '/api/v1/services/sessions', // POST, 创建会话
+      GET_SESSION: (id: string) => `/api/v1/services/sessions/${id}`, // GET, 获取会话详情
+      UPDATE_SESSION: (id: string) => `/api/v1/services/sessions/${id}`, // PUT, 更新会话信息
+
+      // 评价管理
+      CREATE_REVIEW: '/api/v1/services/reviews', // POST, 创建评价
+      GET_REVIEW: (id: string) => `/api/v1/services/reviews/${id}` // GET, 获取评价详情
+    },
+
+    // 保留旧的MENTORSHIP配置以确保向后兼容性
     MENTORSHIP: {
-      CREATE: '/api/v1/mentorships', // POST, 创建指导关系
-      GET_ALL: '/api/v1/mentorships', // GET, 获取所有指导关系
-      GET: (id: string) => `/api/v1/mentorships/${id}`, // GET, 获取单个指导关系
-      UPDATE: (id: string) => `/api/v1/mentorships/${id}`, // PUT, 更新指导关系
-      GET_SESSIONS: (id: string) => `/api/v1/mentorships/${id}/sessions` // GET, 获取关系下的所有会话
+      CREATE: '/api/v1/services/mentorships', // POST, 创建指导关系
+      GET_ALL: '/api/v1/services/mentorships', // GET, 获取所有指导关系
+      GET: (id: string) => `/api/v1/services/mentorships/${id}`, // GET, 获取单个指导关系
+      UPDATE: (id: string) => `/api/v1/services/mentorships/${id}`, // PUT, 更新指导关系
+      GET_SESSIONS: (id: string) => `/api/v1/services/mentorships/${id}/sessions` // GET, 获取关系下的所有会话
     },
 
     // 会话管理 (Sessions)

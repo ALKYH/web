@@ -358,7 +358,8 @@ export const getUserProfile = async (): Promise<UserProfileResponse> => {
 };
 
 // Session and activity functions
-export const getUserSessions = async (params?: {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const getUserSessions = async (_params?: {
   limit?: number;
   offset?: number;
 }): Promise<unknown[]> => {
@@ -370,6 +371,13 @@ export const getUserSessions = async (params?: {
       return [];
     }
 
+    // TODO: API文档中没有获取用户mentorships列表的端点，暂时返回空数组
+    // 正确的端点可能需要后端实现
+    console.warn('getUserSessions: API endpoint for user mentorships not available, returning empty array');
+    return [];
+
+    // 以下是原始代码，调用不存在的端点
+    /*
     const queryParams = new URLSearchParams();
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
@@ -388,6 +396,7 @@ export const getUserSessions = async (params?: {
     }
 
     return response.json();
+    */
   } catch (error) {
     console.error('Error fetching user sessions:', error);
     return [];
@@ -725,6 +734,327 @@ interface ProfileUpdateData {
   budget_max?: number;
   learning_goals?: string;
 }
+
+// ============================================================================
+// Services API - 新增的服务管理相关API函数
+// ============================================================================
+
+// 服务管理接口
+export interface Service {
+  id: string;
+  mentorId: string;
+  skillId: string;
+  title: string;
+  description?: string;
+  price: string;
+  durationHours: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServiceCreate {
+  mentor_id: string;
+  skill_id: string;
+  title: string;
+  description?: string;
+  price: number | string;
+  duration_hours: number;
+  is_active?: boolean;
+}
+
+export interface ServiceUpdate {
+  title?: string;
+  description?: string;
+  price?: number | string;
+  duration_hours?: number;
+  is_active?: boolean;
+}
+
+// 导师关系管理接口
+export interface Mentorship {
+  id: string;
+  mentorId: string;
+  menteeId: string;
+  serviceId: string;
+  status: 'pending' | 'active' | 'completed' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MentorshipCreate {
+  mentor_id: string;
+  mentee_id: string;
+  service_id: string;
+  status?: 'pending' | 'active' | 'completed' | 'cancelled';
+}
+
+export interface MentorshipUpdate {
+  status?: 'pending' | 'active' | 'completed' | 'cancelled';
+}
+
+// 会话管理接口
+export interface Session {
+  id: string;
+  mentorshipId: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+  mentorNotes?: string;
+  menteeNotes?: string;
+}
+
+export interface SessionCreate {
+  mentorship_id: string;
+  scheduled_at: string;
+  duration_minutes?: number;
+  status?: 'scheduled' | 'completed' | 'cancelled';
+}
+
+export interface SessionUpdate {
+  scheduled_at?: string;
+  duration_minutes?: number;
+  status?: 'scheduled' | 'completed' | 'cancelled';
+  mentor_notes?: string;
+  mentee_notes?: string;
+}
+
+// 评价管理接口
+export interface Review {
+  id: string;
+  mentorshipId: string;
+  reviewerId: string;
+  revieweeId: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewCreate {
+  mentorship_id: string;
+  reviewer_id: string;
+  reviewee_id: string;
+  rating: number;
+  comment?: string;
+}
+
+// 服务管理API函数
+export const listServices = async (params?: {
+  skill_id?: string;
+  mentor_id?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<{ code: number; message: string; data: Service[] }> => {
+  const queryParams = new URLSearchParams();
+
+  if (params?.skill_id) queryParams.append('skill_id', params.skill_id);
+  if (params?.mentor_id) queryParams.append('mentor_id', params.mentor_id);
+  if (params?.page) queryParams.append('page', params.page.toString());
+  if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
+
+  const response = await apiRequest(
+    getFullUrl(`${API_CONFIG.ENDPOINTS.SERVICES.LIST_SERVICES}?${queryParams}`)
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch services');
+  }
+
+  return response.json();
+};
+
+export const createService = async (serviceData: ServiceCreate): Promise<{ code: number; message: string; data: Service }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.CREATE_SERVICE),
+    {
+      method: 'POST',
+      body: JSON.stringify(serviceData)
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to create service');
+  }
+
+  return response.json();
+};
+
+export const getService = async (serviceId: string): Promise<{ code: number; message: string; data: Service }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.GET_SERVICE(serviceId))
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch service');
+  }
+
+  return response.json();
+};
+
+export const updateService = async (serviceId: string, serviceData: ServiceUpdate): Promise<{ code: number; message: string; data: Service }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.UPDATE_SERVICE(serviceId)),
+    {
+      method: 'PUT',
+      body: JSON.stringify(serviceData)
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to update service');
+  }
+
+  return response.json();
+};
+
+export const deleteService = async (serviceId: string): Promise<{ code: number; message: string; data: Record<string, never> }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.DELETE_SERVICE(serviceId)),
+    {
+      method: 'DELETE'
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to delete service');
+  }
+
+  return response.json();
+};
+
+export const getMyServices = async (): Promise<{ code: number; message: string; data: Service[] }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.GET_MY_SERVICES)
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch my services');
+  }
+
+  return response.json();
+};
+
+// 导师关系管理API函数
+export const createMentorship = async (mentorshipData: MentorshipCreate): Promise<{ code: number; message: string; data: Mentorship }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.CREATE_MENTORSHIP),
+    {
+      method: 'POST',
+      body: JSON.stringify(mentorshipData)
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to create mentorship');
+  }
+
+  return response.json();
+};
+
+export const getMentorship = async (mentorshipId: string): Promise<{ code: number; message: string; data: Mentorship }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.GET_MENTORSHIP(mentorshipId))
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch mentorship');
+  }
+
+  return response.json();
+};
+
+export const updateMentorship = async (mentorshipId: string, mentorshipData: MentorshipUpdate): Promise<{ code: number; message: string; data: Mentorship }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.UPDATE_MENTORSHIP(mentorshipId)),
+    {
+      method: 'PUT',
+      body: JSON.stringify(mentorshipData)
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to update mentorship');
+  }
+
+  return response.json();
+};
+
+// 会话管理API函数
+export const createSession = async (sessionData: SessionCreate): Promise<{ code: number; message: string; data: Session }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.CREATE_SESSION),
+    {
+      method: 'POST',
+      body: JSON.stringify(sessionData)
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to create session');
+  }
+
+  return response.json();
+};
+
+export const getSession = async (sessionId: string): Promise<{ code: number; message: string; data: Session }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.GET_SESSION(sessionId))
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch session');
+  }
+
+  return response.json();
+};
+
+export const updateSession = async (sessionId: string, sessionData: SessionUpdate): Promise<{ code: number; message: string; data: Session }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.UPDATE_SESSION(sessionId)),
+    {
+      method: 'PUT',
+      body: JSON.stringify(sessionData)
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to update session');
+  }
+
+  return response.json();
+};
+
+// 评价管理API函数
+export const createReview = async (reviewData: ReviewCreate): Promise<{ code: number; message: string; data: Review }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.CREATE_REVIEW),
+    {
+      method: 'POST',
+      body: JSON.stringify(reviewData)
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to create review');
+  }
+
+  return response.json();
+};
+
+export const getReview = async (reviewId: string): Promise<{ code: number; message: string; data: Review }> => {
+  const response = await apiRequest(
+    getFullUrl(API_CONFIG.ENDPOINTS.SERVICES.GET_REVIEW(reviewId))
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch review');
+  }
+
+  return response.json();
+};
 
 export const apiClient = new ApiClient();
 export type {
